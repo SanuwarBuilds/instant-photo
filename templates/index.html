@@ -395,10 +395,19 @@
 
       fetch('/process', { method: 'POST', body: formData })
         .then(async response => {
-          if (response.status === 429) { showNotification("Server Daily Quota Exceeded. Please try again later."); return null; }
-          if (response.status === 410) { showNotification("Cannot Detect Face/Background in one of the images."); return null; }
-          if (response.status === 500) { showNotification("Internal Error, try again later."); return null; }
-          if (!response.ok) throw new Error("Processing failed.");
+          if (!response.ok) {
+            let errorMsg = "Internal Error, try again later.";
+            try {
+               const errData = await response.json();
+               if (errData.error) errorMsg = errData.error;
+            } catch(e) {}
+            
+            if (response.status === 429 && errorMsg === "quota_exceeded") errorMsg = "Server Daily Quota Exceeded. Please try again later.";
+            if (response.status === 410 && errorMsg === "face_detection_failed") errorMsg = "Cannot Detect Face/Background in one of the images.";
+            
+            showNotification(errorMsg);
+            return null;
+          }
           return response.blob();
         })
         .then(blob => {

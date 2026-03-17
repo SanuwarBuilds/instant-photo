@@ -12,12 +12,13 @@ import os
 
 app = Flask(__name__)
 
-REMOVE_BG_API_KEY = os.getenv("REMOVE_BG_API_KEY")
+REMOVE_BG_API_KEY = os.getenv("KXWmQvopog77oRo2jsTNwKqK")
+CLOUDINARY_CLOUD_NAME = os.getenv("dx3gpnczk")
 
 cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    cloud_name=os.getenv("dx3gpnczk"),
+    api_key=os.getenv("641871392431426"),
+    api_secret=os.getenv("NQXB3lMWyYgGrNZ3cXkkBZHzfvc"),
 )
 
 
@@ -44,6 +45,7 @@ def process_single_image(input_image_bytes):
                 raise ValueError(f"bg_removal_failed:{error_code}:{response.status_code}")
         except ValueError:
             raise
+
         except Exception:
             pass
         raise ValueError(f"bg_removal_failed:unknown:{response.status_code}")
@@ -96,6 +98,11 @@ def process_single_image(input_image_bytes):
 def process():
     print("==== /process endpoint hit ====")
 
+    if not REMOVE_BG_API_KEY:
+        return {"error": "Remove.bg API Key missing. Please provide .env or setup keys."}, 500
+    if not CLOUDINARY_CLOUD_NAME:
+        return {"error": "Cloudinary details missing. Please provide .env or setup keys."}, 500
+
     try:
         # Layout settings
         passport_width = int(request.form.get("width", 390))
@@ -142,8 +149,10 @@ def process():
                 err_str = str(e)
                 if "410" in err_str or "face" in err_str.lower():
                     return {"error": "face_detection_failed"}, 410
-                elif "429" in err_str or "quota" in err_str.lower():
+                elif "429" in err_str or "quota" in err_str.lower() or "402" in err_str or "insufficient_credits" in err_str.lower():
                     return {"error": "quota_exceeded"}, 429
+                elif "403" in err_str or "auth_failed" in err_str.lower():
+                    return {"error": "API Key is invalid or unauthorized."}, 500
                 else:
                     print(f"ERROR processing image {idx}: {err_str}")
                     return {"error": err_str}, 500
