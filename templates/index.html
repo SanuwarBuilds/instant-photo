@@ -514,7 +514,7 @@
       if (!contact || !message) { showNotification("Please fill out all fields."); return; }
       const btn = feedbackForm.querySelector('button[type="submit"]');
       btn.disabled = true; btn.textContent = 'Submitting...';
-      emailjs.send("service_5a1u7at", "template_l3ccdhy", {
+      emailjs.send("service_5a1u7at", "template_5zf7ngf", {
         contact, message,
         user_agent: navigator.userAgent,
         time: new Date().toLocaleString()
