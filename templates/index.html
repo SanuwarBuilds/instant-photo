@@ -11,7 +11,7 @@
   <link rel="icon" href="https://res.cloudinary.com/dcajb02df/image/upload/v1753960691/logo_pyncju.png"
     type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PassPort Photo Pro</title>
+  <title>Sanuwar Instant Photo</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <style>
@@ -63,6 +63,62 @@
       max-height: 90vh;
       overflow: auto;
     }
+
+    /* Ultra Smooth Beta Runner */
+    .banner-container {
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+    }
+
+    .banner-content {
+      display: inline-block;
+      padding-left: 100%;
+      animation: banner-scroll 25s linear infinite;
+      will-change: transform;
+    }
+
+    @keyframes banner-scroll {
+      0% {
+        transform: translate3d(0, 0, 0);
+      }
+
+      100% {
+        transform: translate3d(-100%, 0, 0);
+      }
+    }
+
+    .banner-container:hover .banner-content {
+      animation-play-state: paused;
+    }
+
+    /* Fire Effect */
+    @keyframes fire-flicker {
+      0% { text-shadow: 0 0 4px #f59e0b, 0 -2px 4px #ef4444, 0 -4px 6px #f97316; opacity: 0.9; transform: translate3d(0, 0, 0) scale(1); }
+      25% { text-shadow: 0 0 5px #f59e0b, 0 -1px 3px #ef4444, 0 -3px 5px #f97316; opacity: 1; transform: translate3d(1px, -1px, 0) scale(1.01); }
+      50% { text-shadow: 0 0 6px #f59e0b, 0 -3px 5px #ef4444, 0 -5px 8px #f97316; opacity: 0.85; transform: translate3d(-1px, 0, 0) scale(0.99); }
+      75% { text-shadow: 0 0 4px #f59e0b, 0 -2px 4px #ef4444, 0 -4px 6px #f97316; opacity: 0.95; transform: translate3d(0, 1px, 0) scale(1); }
+      100% { text-shadow: 0 0 5px #f59e0b, 0 -1px 3px #ef4444, 0 -3px 5px #f97316; opacity: 1; transform: translate3d(1px, 0, 0) scale(1.02); }
+    }
+
+    .fire-text {
+      animation: fire-flicker 0.15s infinite alternate ease-in-out;
+      display: inline-block;
+      font-weight: 700;
+      color: #000;
+    }
+
+    .fire-banner {
+      background: linear-gradient(270deg, #f59e0b, #ef4444, #f59e0b, #ef4444);
+      background-size: 400% 400%;
+      animation: fire-bg 8s ease infinite;
+    }
+
+    @keyframes fire-bg {
+      0% { background-position: 0% 50% }
+      50% { background-position: 100% 50% }
+      100% { background-position: 0% 50% }
+    }
   </style>
 </head>
 
@@ -74,17 +130,16 @@
   <header class="bg-gray-900/50 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-10">
     <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
-        <span class="text-2xl font-bold text-blue-400">Passport Photo Pro</span>
+        <span class="text-2xl font-bold text-blue-400">Instant Passport Photo</span>
       </div>
     </nav>
   </header>
 
   <!-- Beta Banner -->
-  <div class="bg-yellow-500 text-black py-2 px-4 font-medium text-center text-sm sm:text-base shadow-md">
-    <marquee behavior="scroll" direction="left" scrollamount="5">
-      🚧 This site is currently in beta. If you encounter any issues, please use the feedback form below to report them.
-      Thank you!
-    </marquee>
+  <div class="bg-yellow-500 text-black py-2 font-medium shadow-md banner-container">
+    <div class="banner-content text-sm sm:text-base">
+      🌙✨ ঈদ উল ফিতৰৰ এই পৱিত্ৰ উপলক্ষত আপোনাক আন্তৰিক শুভেচ্ছা আৰু অভিনন্দন জনাইছো।আপোনাৰ জীৱনত সুখ, শান্তি আৰু বৰকত দান কৰক। আপোনাৰ পৰিয়ালৰ সকলোলৈ আনন্দ আৰু সমৃদ্ধি বিৰাজ কৰক।ঈদ মোবাৰক! — ছানুৱাৰ হুছেইন!🌙✨
+    </div>
   </div>
 
   <!-- Main -->
