@@ -3,7 +3,10 @@ import os
 import uuid
 import bcrypt
 
-CONFIG_FILE = os.path.join("data", "config.json")
+if os.environ.get("VERCEL"):
+    CONFIG_FILE = os.path.join("/tmp", "config.json")
+else:
+    CONFIG_FILE = os.path.join("data", "config.json")
 
 def load_config():
     if not os.path.exists(CONFIG_FILE):

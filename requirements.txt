@@ -3,3 +3,4 @@ Pillow
 requests==2.32.4
 cloudinary==1.44.1
 python-dotenv
+bcrypt
