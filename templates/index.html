@@ -25,6 +25,7 @@
       height: 100%;
       background-color: #1a202c;
       z-index: -1;
+      pointer-events: none;
     }
 
     .transition-all {
@@ -180,7 +181,7 @@
   </style>
 </head>
 
-<body class="bg-gray-900 text-white" oncontextmenu="return false">
+<body class="bg-gray-900 text-white">
 
   <div id="particles-js"></div>
 
@@ -367,23 +368,62 @@
 
   <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
   <script>
-    emailjs.init("mmGDeX1c3j2Bzop95");
+    try {
+      emailjs.init("mmGDeX1c3j2Bzop95");
+    } catch(e) { console.warn("EmailJS init failed: ", e); }
 
-    particlesJS('particles-js', {
-      particles: {
-        number: { value: 80, density: { enable: true, value_area: 800 } },
-        color: { value: "#4a5568" }, shape: { type: "circle" },
-        opacity: { value: 0.5, random: true }, size: { value: 3, random: true },
-        line_linked: { enable: true, distance: 150, color: "#718096", opacity: 0.4, width: 1 },
-        move: { enable: true, speed: 2, direction: "none", random: false, straight: false, out_mode: "out" }
-      },
-      interactivity: {
-        detect_on: "canvas",
-        events: { onhover: { enable: true, mode: "repulse" }, onclick: { enable: true, mode: "push" } },
-        modes: { repulse: { distance: 100 }, push: { particles_nb: 4 } }
-      },
-      retina_detect: true
-    });
+    // ---- Maintenance Check ----
+    async function checkMaintenance() {
+      try {
+        const res = await fetch('/api/maintenance/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.enabled) {
+            // Overlay the entire page or redirect
+            document.body.innerHTML = `
+              <div class="fixed inset-0 bg-gray-900 z-[9999] flex flex-col items-center justify-center text-center p-6">
+                <div class="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mb-6" style="animation: pulse 2s infinite">
+                  <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-4">Under Maintenance</h1>
+                <p class="text-gray-400 text-lg">The server is currently down for maintenance. We will be back shortly.</p>
+              </div>
+            `;
+            // Add basic pulse animation dynamically if not present
+            if (!document.getElementById('pulse-anim')) {
+              const style = document.createElement('style');
+              style.id = 'pulse-anim';
+              style.innerHTML = `@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: .8; } }`;
+              document.head.appendChild(style);
+            }
+          }
+        }
+      } catch (e) { console.error('Maintenance check failed', e); }
+    }
+    
+    // Run check immediately
+    checkMaintenance();
+
+    try {
+      particlesJS('particles-js', {
+        particles: {
+          number: { value: 80, density: { enable: true, value_area: 800 } },
+          color: { value: "#4a5568" }, shape: { type: "circle" },
+          opacity: { value: 0.5, random: true }, size: { value: 3, random: true },
+          line_linked: { enable: true, distance: 150, color: "#718096", opacity: 0.4, width: 1 },
+          move: { enable: true, speed: 2, direction: "none", random: false, straight: false, out_mode: "out" }
+        },
+        interactivity: {
+          detect_on: "canvas",
+          events: { onhover: { enable: false, mode: "repulse" }, onclick: { enable: false, mode: "push" } },
+          modes: { repulse: { distance: 100 }, push: { particles_nb: 4 } }
+        },
+        retina_detect: true
+      });
+    } catch(e) { console.warn("Particles fallback: ", e); }
 
     // ---- State ----
     // photos: Array of { id, originalFile, croppedFile, previewUrl, copies }
@@ -489,10 +529,12 @@
 
     // ---- Add Files ----
     function addFiles(files) {
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
       let added = 0;
       Array.from(files).forEach(file => {
-        if (!validTypes.includes(file.type)) return;
+        if (!file.type.startsWith('image/')) {
+          console.warn("Ignoring non-image file:", file.type);
+          return;
+        }
         const photo = {
           id: nextId++,
           originalFile: file,

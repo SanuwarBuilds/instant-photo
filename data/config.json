@@ -1,0 +1,32 @@
+{
+  "admin": {
+    "username": "admin",
+    "password_hash": "$2b$12$WQWEB403QVNtyAxLjOkoV..gYK.1NdVMKLM4p7.bFZ/4CajHyygpG"
+  },
+  "api_keys": [
+    {
+      "id": "default-key",
+      "service": "remove_bg",
+      "key": "KXWmQvopog77oRo2jsTNwKqK",
+      "label": "Init Key",
+      "active": false,
+      "added_at": "2026-03-20T21:25:00",
+      "usage_count": 4,
+      "last_failed": null
+    },
+    {
+      "id": "d6a9d989-58d4-458e-b59f-11e599274bff",
+      "service": "remove_bg",
+      "key": "6AoFBLHkVgES7MZ9wnyo5i7T",
+      "label": "secondary",
+      "active": true,
+      "added_at": "2026-03-20T22:10:04.200074",
+      "usage_count": 2,
+      "last_failed": null
+    }
+  ],
+  "maintenance": {
+    "enabled": false,
+    "message": "Server is currently down for maintenance"
+  }
+}
