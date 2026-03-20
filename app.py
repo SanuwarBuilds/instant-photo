@@ -27,9 +27,24 @@ def index():
     return render_template("index.html")
 
 
-def process_single_image(input_image_bytes):
-    """Remove background, enhance, and return a ready-to-paste passport PIL image."""
-    # Step 1: Background removal
+def hex_to_rgb(hex_color):
+    """Convert a hex color string (e.g. '#3B82F6') to an (R, G, B) tuple."""
+    hex_color = hex_color.lstrip("#")
+    if len(hex_color) != 6:
+        return (255, 255, 255)  # Fallback to white
+    return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+
+
+def process_single_image(input_image_bytes, bg_color="#FFFFFF"):
+    """Remove background, enhance, and return a ready-to-paste passport PIL image.
+
+    Args:
+        input_image_bytes: Raw image bytes for the upload.
+        bg_color: Hex color string for the background (default white).
+    """
+    bg_rgb = hex_to_rgb(bg_color)
+
+    # Step 1: Background removal via remove.bg (called ONCE per image)
     response = requests.post(
         "https://api.remove.bg/v1.0/removebg",
         files={"image_file": input_image_bytes},
@@ -53,16 +68,20 @@ def process_single_image(input_image_bytes):
     bg_removed = BytesIO(response.content)
     img = Image.open(bg_removed)
 
-    if img.mode in ("RGBA", "LA"):
-        background = Image.new("RGB", img.size, (255, 255, 255))
-        background.paste(img, mask=img.split()[-1])
-        processed_img = background
-    else:
-        processed_img = img.convert("RGB")
+    # Ensure RGBA so we can extract the alpha mask
+    if img.mode not in ("RGBA", "LA"):
+        img = img.convert("RGBA")
 
-    # Step 2: Upload to Cloudinary
+    # Step 2: Save the alpha mask BEFORE Cloudinary (gen_restore strips transparency)
+    alpha_mask = img.split()[-1]
+
+    # Flatten to white for Cloudinary enhancement (gives best quality results)
+    flat_img = Image.new("RGB", img.size, (255, 255, 255))
+    flat_img.paste(img, mask=alpha_mask)
+
+    # Step 3: Upload flattened image to Cloudinary for AI enhancement
     buffer = BytesIO()
-    processed_img.save(buffer, format="PNG")
+    flat_img.save(buffer, format="PNG")
     buffer.seek(0)
     upload_result = cloudinary.uploader.upload(buffer, resource_type="image")
     image_url = upload_result.get("secure_url")
@@ -71,7 +90,7 @@ def process_single_image(input_image_bytes):
     if not image_url:
         raise ValueError("cloudinary_upload_failed")
 
-    # Step 3: Enhance via Cloudinary AI
+    # Step 4: Enhance via Cloudinary AI
     enhanced_url = cloudinary.utils.cloudinary_url(
         public_id,
         transformation=[
@@ -82,14 +101,16 @@ def process_single_image(input_image_bytes):
     )[0]
 
     enhanced_img_data = requests.get(enhanced_url).content
-    img = Image.open(BytesIO(enhanced_img_data))
+    enhanced_img = Image.open(BytesIO(enhanced_img_data)).convert("RGB")
 
-    if img.mode in ("RGBA", "LA"):
-        background = Image.new("RGB", img.size, (255, 255, 255))
-        background.paste(img, mask=img.split()[-1])
-        passport_img = background
-    else:
-        passport_img = img.convert("RGB")
+    # Step 5: Resize alpha mask to match enhanced image (in case of size mismatch)
+    if alpha_mask.size != enhanced_img.size:
+        alpha_mask = alpha_mask.resize(enhanced_img.size, Image.LANCZOS)
+
+    # Step 6: Composite the enhanced subject onto the user-selected background color
+    background = Image.new("RGB", enhanced_img.size, bg_rgb)
+    background.paste(enhanced_img, mask=alpha_mask)
+    passport_img = background
 
     return passport_img
 
@@ -109,6 +130,7 @@ def process():
         passport_height = int(request.form.get("height", 480))
         border = int(request.form.get("border", 2))
         spacing = int(request.form.get("spacing", 10))
+        bg_color = request.form.get("bg_color", "#FFFFFF")  # Background color from UI
         margin_x = 10
         margin_y = 10
         horizontal_gap = 10
@@ -141,7 +163,7 @@ def process():
         for idx, (img_bytes, copies) in enumerate(images_data):
             print(f"DEBUG: Processing image {idx + 1} with {copies} copies")
             try:
-                img = process_single_image(img_bytes)
+                img = process_single_image(img_bytes, bg_color=bg_color)
                 img = img.resize((passport_width, passport_height), Image.LANCZOS)
                 img = ImageOps.expand(img, border=border, fill="black")
                 passport_images.append((img, copies))
@@ -166,22 +188,27 @@ def process():
         paste_w = passport_width + 2 * border
         paste_h = passport_height + 2 * border
 
+        # Calculate how many photos fit in one row + center offset
+        cols_per_row = max(1, (a4_w + horizontal_gap) // (paste_w + horizontal_gap))
+        total_row_width = cols_per_row * paste_w + (cols_per_row - 1) * horizontal_gap
+        center_offset_x = (a4_w - total_row_width) // 2  # Equal left/right margins
+
         # Build all pages
         pages = []
         current_page = Image.new("RGB", (a4_w, a4_h), "white")
-        x, y = margin_x, margin_y
+        x, y = center_offset_x, margin_y
 
         def new_page():
             nonlocal current_page, x, y
             pages.append(current_page)
             current_page = Image.new("RGB", (a4_w, a4_h), "white")
-            x, y = margin_x, margin_y
+            x, y = center_offset_x, margin_y
 
         for passport_img, copies in passport_images:
             for _ in range(copies):
                 # Move to next row if needed
-                if x + paste_w > a4_w - margin_x:
-                    x = margin_x
+                if x + paste_w > a4_w - center_offset_x:
+                    x = center_offset_x
                     y += paste_h + spacing
 
                 # Move to next page if needed

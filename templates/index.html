@@ -119,6 +119,64 @@
       50% { background-position: 100% 50% }
       100% { background-position: 0% 50% }
     }
+
+    /* Background Color Picker */
+    .color-swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 2px solid transparent;
+      position: relative;
+    }
+    .color-swatch:hover {
+      transform: scale(1.12);
+    }
+    .color-swatch.selected {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.35);
+    }
+    .color-swatch.selected::after {
+      content: '✓';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #000;
+      text-shadow: 0 0 2px rgba(255,255,255,0.8);
+    }
+    .custom-color-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 2px dashed #6b7280;
+      background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+      position: relative;
+      overflow: hidden;
+    }
+    .custom-color-btn:hover {
+      transform: scale(1.12);
+      border-color: #9ca3af;
+    }
+    .custom-color-btn.selected {
+      border-style: solid;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.35);
+    }
+    .custom-color-btn input[type="color"] {
+      position: absolute;
+      inset: -4px;
+      width: calc(100% + 8px);
+      height: calc(100% + 8px);
+      opacity: 0;
+      cursor: pointer;
+    }
   </style>
 </head>
 
@@ -204,6 +262,25 @@
               <input type="number" id="border" value="2"
                 class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
+          </div>
+        </div>
+
+        <!-- Background Color Selection -->
+        <div class="mt-6 bg-gray-900/50 p-5 rounded-xl border border-gray-700">
+          <h3 class="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+            </svg>
+            Background Color
+          </h3>
+          <div class="flex items-center gap-3 flex-wrap">
+            <button type="button" class="color-swatch selected" data-color="#FFFFFF" style="background:#FFFFFF;" title="White"></button>
+            <button type="button" class="color-swatch" data-color="#3B82F6" style="background:#3B82F6;" title="Blue"></button>
+            <button type="button" class="color-swatch" data-color="#22C55E" style="background:#22C55E;" title="Green"></button>
+            <div class="custom-color-btn" id="customColorBtn" title="Custom Color">
+              <input type="color" id="customColorInput" value="#FF6B6B" />
+            </div>
+            <span id="bgColorLabel" class="text-xs text-gray-500 ml-1">#FFFFFF</span>
           </div>
         </div>
 
@@ -312,6 +389,7 @@
     // photos: Array of { id, originalFile, croppedFile, previewUrl, copies }
     let photos = [];
     let nextId = 0;
+    let selectedBgColor = '#FFFFFF'; // Default background color
 
     // Cropper modal state
     let activeCropper = null;
@@ -495,6 +573,31 @@
       toggleAdvanced.textContent = visible ? 'Advanced Options' : 'Hide Advanced Options';
     });
 
+    // ---- Background Color Picker ----
+    const bgColorLabel = document.getElementById('bgColorLabel');
+    const customColorBtn = document.getElementById('customColorBtn');
+    const customColorInput = document.getElementById('customColorInput');
+    const colorSwatches = document.querySelectorAll('.color-swatch');
+
+    // Select a predefined swatch
+    colorSwatches.forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        colorSwatches.forEach(s => s.classList.remove('selected'));
+        customColorBtn.classList.remove('selected');
+        swatch.classList.add('selected');
+        selectedBgColor = swatch.dataset.color;
+        bgColorLabel.textContent = selectedBgColor;
+      });
+    });
+
+    // Custom color picker
+    customColorInput.addEventListener('input', (e) => {
+      selectedBgColor = e.target.value.toUpperCase();
+      bgColorLabel.textContent = selectedBgColor;
+      colorSwatches.forEach(s => s.classList.remove('selected'));
+      customColorBtn.classList.add('selected');
+    });
+
     // ---- Generate PDF ----
     generateBtn.addEventListener('click', () => {
       if (photos.length === 0) {
@@ -512,6 +615,7 @@
       formData.append('height', document.getElementById('height').value);
       formData.append('spacing', document.getElementById('spacing').value);
       formData.append('border', document.getElementById('border').value);
+      formData.append('bg_color', selectedBgColor); // Send selected background color
 
       loading.classList.remove('hidden');
       generateBtn.disabled = true;
