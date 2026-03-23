@@ -9,9 +9,9 @@
       "service": "remove_bg",
       "key": "KXWmQvopog77oRo2jsTNwKqK",
       "label": "Init Key",
-      "active": false,
+      "active": true,
       "added_at": "2026-03-20T21:25:00",
-      "usage_count": 4,
+      "usage_count": 5,
       "last_failed": null
     },
     {
@@ -19,9 +19,9 @@
       "service": "remove_bg",
       "key": "6AoFBLHkVgES7MZ9wnyo5i7T",
       "label": "secondary",
-      "active": true,
+      "active": false,
       "added_at": "2026-03-20T22:10:04.200074",
-      "usage_count": 2,
+      "usage_count": 3,
       "last_failed": null
     }
   ],

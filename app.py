@@ -91,90 +91,110 @@ def admin_logout():
 @app.route("/api/admin/dashboard")
 @login_required
 def api_admin_dashboard():
-    config = utils.load_config()
-    keys = config.get("api_keys", [])
-    active_key = next((k for k in keys if k.get("active")), None)
-    
-    return jsonify({
-        "total_keys": len(keys),
-        "active_key_label": active_key.get("label") if active_key else "None",
-        "maintenance_enabled": config.get("maintenance", {}).get("enabled", False)
-    })
+    try:
+        config = utils.load_config()
+        keys = config.get("api_keys", [])
+        active_key = next((k for k in keys if k.get("active")), None)
+        
+        return jsonify({
+            "total_keys": len(keys),
+            "active_key_label": active_key.get("label") if active_key else "None",
+            "maintenance_enabled": config.get("maintenance", {}).get("enabled", False)
+        })
+    except Exception as e:
+        print(f"Error in api_admin_dashboard: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/api/admin/keys", methods=["GET", "POST"])
 @login_required
 def api_admin_keys():
-    config = utils.load_config()
-    if request.method == "GET":
-        keys = config.get("api_keys", [])
-        # Mask keys
-        masked_keys = []
-        for k in keys:
-            km = k.copy()
-            kn = km["key"]
-            km["key"] = kn[:6] + "..." + kn[-4:] if len(kn) > 10 else "***"
-            masked_keys.append(km)
-        return jsonify(masked_keys)
-        
-    if request.method == "POST":
-        data = request.json
-        new_key = {
-            "id": str(uuid.uuid4()),
-            "service": data.get("service", "remove_bg"),
-            "key": data.get("key"),
-            "label": data.get("label", "New Key"),
-            "active": data.get("active", False),
-            "added_at": datetime.datetime.now().isoformat(),
-            "usage_count": 0,
-            "last_failed": None
-        }
-        config.setdefault("api_keys", []).append(new_key)
-        utils.save_config(config)
-        return jsonify({"success": True, "key": new_key})
+    try:
+        config = utils.load_config()
+        if request.method == "GET":
+            keys = config.get("api_keys", [])
+            # Mask keys
+            masked_keys = []
+            for k in keys:
+                km = k.copy()
+                kn = km["key"]
+                km["key"] = kn[:6] + "..." + kn[-4:] if len(kn) > 10 else "***"
+                masked_keys.append(km)
+            return jsonify(masked_keys)
+            
+        if request.method == "POST":
+            data = request.json
+            new_key = {
+                "id": str(uuid.uuid4()),
+                "service": data.get("service", "remove_bg"),
+                "key": data.get("key"),
+                "label": data.get("label", "New Key"),
+                "active": data.get("active", False),
+                "added_at": datetime.datetime.now().isoformat(),
+                "usage_count": 0,
+                "last_failed": None
+            }
+            config.setdefault("api_keys", []).append(new_key)
+            utils.save_config(config)
+            return jsonify({"success": True, "key": new_key})
+    except Exception as e:
+        print(f"Error in api_admin_keys: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/api/admin/keys/<key_id>/activate", methods=["POST"])
 @login_required
 def api_admin_activate_key(key_id):
-    config = utils.load_config()
-    keys = config.get("api_keys", [])
-    
-    # Find key to see its service
-    target_key = next((k for k in keys if k.get("id") == key_id), None)
-    if not target_key:
-        return jsonify({"error": "key_not_found"}), 404
+    try:
+        config = utils.load_config()
+        keys = config.get("api_keys", [])
         
-    service = target_key.get("service")
-    
-    # Deactivate others in same service, activate this one
-    for k in keys:
-        if k.get("service") == service:
-            k["active"] = (k.get("id") == key_id)
-            if k["active"]:
-                k["last_failed"] = None # Reset fail state on manual activation
-                
-    utils.save_config(config)
-    return jsonify({"success": True})
+        # Find key to see its service
+        target_key = next((k for k in keys if k.get("id") == key_id), None)
+        if not target_key:
+            return jsonify({"error": "key_not_found"}), 404
+            
+        service = target_key.get("service")
+        
+        # Deactivate others in same service, activate this one
+        for k in keys:
+            if k.get("service") == service:
+                k["active"] = (k.get("id") == key_id)
+                if k["active"]:
+                    k["last_failed"] = None # Reset fail state on manual activation
+                    
+        utils.save_config(config)
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Error in api_admin_activate_key: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/api/admin/keys/<key_id>", methods=["DELETE"])
 @login_required
 def api_admin_delete_key(key_id):
-    config = utils.load_config()
-    keys = config.get("api_keys", [])
-    config["api_keys"] = [k for k in keys if k.get("id") != key_id]
-    utils.save_config(config)
-    return jsonify({"success": True})
+    try:
+        config = utils.load_config()
+        keys = config.get("api_keys", [])
+        config["api_keys"] = [k for k in keys if k.get("id") != key_id]
+        utils.save_config(config)
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Error in api_admin_delete_key: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/api/admin/maintenance", methods=["POST"])
 @login_required
 def api_admin_maintenance():
-    data = request.json
-    config = utils.load_config()
-    maintenance = config.setdefault("maintenance", {})
-    maintenance["enabled"] = bool(data.get("enabled"))
-    if "message" in data:
-        maintenance["message"] = data.get("message")
-    utils.save_config(config)
-    return jsonify({"success": True, "maintenance": maintenance})
+    try:
+        data = request.json
+        config = utils.load_config()
+        maintenance = config.setdefault("maintenance", {})
+        maintenance["enabled"] = bool(data.get("enabled"))
+        if "message" in data:
+            maintenance["message"] = data.get("message")
+        utils.save_config(config)
+        return jsonify({"success": True, "maintenance": maintenance})
+    except Exception as e:
+        print(f"Error in api_admin_maintenance: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/")

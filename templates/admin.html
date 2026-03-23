@@ -170,9 +170,9 @@
 
         const activateBtnBtn = k.active 
           ? `<button disabled class="text-xs text-gray-500 px-2 py-1">Active</button>`
-          : `<button onclick="activateKey('${k.id}')" class="text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 px-4 py-2 md:px-3 md:py-1.5 rounded-lg transition-colors mr-2">Activate</button>`;
+          : `<button onclick="activateKey('${k.id}', this)" class="text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 px-4 py-2 md:px-3 md:py-1.5 rounded-lg transition-colors mr-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Activate</button>`;
           
-        const deleteBtn = `<button onclick="deleteKey('${k.id}')" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-4 py-2 md:px-3 md:py-1.5 rounded-lg transition-colors">Delete</button>`;
+        const deleteBtn = `<button onclick="deleteKey('${k.id}', this)" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-4 py-2 md:px-3 md:py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Delete</button>`;
 
         return `
           <div class="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 px-5 py-5 hover:bg-gray-800/30 transition-colors group">
@@ -211,16 +211,21 @@
     // Maintenance Toggle
     document.getElementById('maintenanceToggle').addEventListener('change', async (e) => {
       const enabled = e.target.checked;
+      const toggleElement = e.target;
+      toggleElement.disabled = true;
       try {
-        await fetch('/api/admin/maintenance', {
+        const res = await fetch('/api/admin/maintenance', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ enabled })
         });
-        loadDashboard(); // Refresh stats
+        if (!res.ok) throw new Error("Server returned " + res.status);
+        await loadDashboard(); // Refresh stats
       } catch (err) {
-        alert("Failed to toggle maintenance");
-        e.target.checked = !enabled; // Revert visually
+        alert("Failed to toggle maintenance: " + err.message);
+        toggleElement.checked = !enabled; // Revert visually
+      } finally {
+        toggleElement.disabled = false;
       }
     });
 
@@ -241,36 +246,50 @@
       };
 
       try {
-        await fetch('/api/admin/keys', {
+        const res = await fetch('/api/admin/keys', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        if (!res.ok) {
+           const errData = await res.json().catch(() => ({}));
+           throw new Error(errData.error || "Server error " + res.status);
+        }
         closeAddModal();
-        loadDashboard();
+        await loadDashboard();
       } catch (err) {
-        alert("Failed to add key");
+        alert("Failed to add key: " + err.message);
       } finally {
         btn.disabled = false; btn.textContent = 'Save Key';
       }
     });
 
     // Activate Key
-    async function activateKey(id) {
+    async function activateKey(id, btnElement) {
       if (!confirm("Set this as the active key?")) return;
+      if (btnElement) { btnElement.disabled = true; btnElement.textContent = '...'; }
       try {
-        await fetch(`/api/admin/keys/${id}/activate`, { method: 'POST' });
-        loadDashboard();
-      } catch (e) { alert("Failed to activate key"); }
+        const res = await fetch(`/api/admin/keys/${id}/activate`, { method: 'POST' });
+        if (!res.ok) throw new Error("Server error " + res.status);
+        await loadDashboard();
+      } catch (e) { 
+        alert("Failed to activate key: " + e.message); 
+        if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Activate'; }
+      }
     }
 
     // Delete Key
-    async function deleteKey(id) {
+    async function deleteKey(id, btnElement) {
       if (!confirm("Are you sure you want to delete this key?")) return;
+      if (btnElement) { btnElement.disabled = true; btnElement.textContent = '...'; }
       try {
-        await fetch(`/api/admin/keys/${id}`, { method: 'DELETE' });
-        loadDashboard();
-      } catch (e) { alert("Failed to delete key"); }
+        const res = await fetch(`/api/admin/keys/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error("Server error " + res.status);
+        await loadDashboard();
+      } catch (e) { 
+        alert("Failed to delete key: " + e.message); 
+        if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Delete'; }
+      }
     }
 
     // Init
