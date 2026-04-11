@@ -197,6 +197,201 @@ def api_admin_maintenance():
         return jsonify({"error": "Internal server error"}), 500
 
 
+# --- COUNTDOWN ROUTES ---
+
+@app.route("/api/countdowns", methods=["GET"])
+def api_get_countdowns_public():
+    """Public endpoint — returns only enabled countdowns for the home page."""
+    config = utils.load_config()
+    all_cds = config.get("countdowns", [])
+    enabled = [c for c in all_cds if c.get("enabled")]
+    return jsonify(enabled)
+
+@app.route("/api/admin/countdowns", methods=["GET"])
+@login_required
+def api_admin_get_countdowns():
+    config = utils.load_config()
+    return jsonify(config.get("countdowns", []))
+
+@app.route("/api/admin/countdowns", methods=["POST"])
+@login_required
+def api_admin_add_countdown():
+    try:
+        data = request.json
+        if not data.get("title") or not data.get("tickcounter_id"):
+            return jsonify({"error": "title and tickcounter_id are required"}), 400
+        config = utils.load_config()
+        new_cd = {
+            "id": str(uuid.uuid4()),
+            "title": data["title"],
+            "tickcounter_id": data["tickcounter_id"],
+            "enabled": bool(data.get("enabled", True)),
+            "created_at": datetime.datetime.now().isoformat()
+        }
+        config.setdefault("countdowns", []).append(new_cd)
+        utils.save_config(config)
+        return jsonify({"success": True, "countdown": new_cd})
+    except Exception as e:
+        print(f"Error adding countdown: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/api/admin/countdowns/<cd_id>", methods=["PUT"])
+@login_required
+def api_admin_update_countdown(cd_id):
+    try:
+        data = request.json
+        config = utils.load_config()
+        countdowns = config.get("countdowns", [])
+        cd = next((c for c in countdowns if c["id"] == cd_id), None)
+        if not cd:
+            return jsonify({"error": "not_found"}), 404
+        if "title" in data:
+            cd["title"] = data["title"]
+        if "tickcounter_id" in data:
+            cd["tickcounter_id"] = data["tickcounter_id"]
+        if "enabled" in data:
+            cd["enabled"] = bool(data["enabled"])
+        utils.save_config(config)
+        return jsonify({"success": True, "countdown": cd})
+    except Exception as e:
+        print(f"Error updating countdown: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/api/admin/countdowns/<cd_id>", methods=["DELETE"])
+@login_required
+def api_admin_delete_countdown(cd_id):
+    try:
+        config = utils.load_config()
+        config["countdowns"] = [c for c in config.get("countdowns", []) if c["id"] != cd_id]
+        utils.save_config(config)
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Error deleting countdown: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+# --- WIDGET ROUTES (Home Screen Builder) ---
+
+@app.route("/api/widgets", methods=["GET"])
+def api_widgets_public():
+    """Public — returns all enabled widgets sorted by order."""
+    config = utils.load_config()
+    widgets = [w for w in config.get("widgets", []) if w.get("enabled")]
+    widgets.sort(key=lambda x: x.get("order", 0))
+    return jsonify(widgets)
+
+@app.route("/api/admin/widgets", methods=["GET"])
+@login_required
+def api_admin_widgets_get():
+    config = utils.load_config()
+    widgets = config.get("widgets", [])
+    widgets.sort(key=lambda x: x.get("order", 0))
+    return jsonify(widgets)
+
+@app.route("/api/admin/widgets", methods=["POST"])
+@login_required
+def api_admin_widgets_add():
+    try:
+        data = request.json
+        if not data.get("type"):
+            return jsonify({"error": "type is required"}), 400
+        config = utils.load_config()
+        widgets = config.get("widgets", [])
+        new_widget = {
+            "id": str(uuid.uuid4()),
+            "type": data["type"],
+            "enabled": bool(data.get("enabled", True)),
+            "order": len(widgets),
+            "data": data.get("data", {}),
+            "created_at": datetime.datetime.now().isoformat()
+        }
+        widgets.append(new_widget)
+        config["widgets"] = widgets
+        utils.save_config(config)
+        return jsonify({"success": True, "widget": new_widget})
+    except Exception as e:
+        print(f"Error adding widget: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/api/admin/widgets/<widget_id>", methods=["PUT"])
+@login_required
+def api_admin_widgets_update(widget_id):
+    try:
+        data = request.json
+        config = utils.load_config()
+        widgets = config.get("widgets", [])
+        w = next((x for x in widgets if x["id"] == widget_id), None)
+        if not w:
+            return jsonify({"error": "not_found"}), 404
+        if "enabled" in data: w["enabled"] = bool(data["enabled"])
+        if "order" in data:   w["order"]   = int(data["order"])
+        if "data" in data:    w["data"]    = data["data"]
+        config["widgets"] = widgets
+        utils.save_config(config)
+        return jsonify({"success": True, "widget": w})
+    except Exception as e:
+        print(f"Error updating widget: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/api/admin/widgets/<widget_id>", methods=["DELETE"])
+@login_required
+def api_admin_widgets_delete(widget_id):
+    try:
+        config = utils.load_config()
+        config["widgets"] = [w for w in config.get("widgets", []) if w["id"] != widget_id]
+        utils.save_config(config)
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Error deleting widget: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/api/admin/widgets/reorder", methods=["POST"])
+@login_required
+def api_admin_widgets_reorder():
+    try:
+        order = request.json.get("order", [])
+        config = utils.load_config()
+        widgets = config.get("widgets", [])
+        id_to_pos = {wid: idx for idx, wid in enumerate(order)}
+        for w in widgets:
+            if w["id"] in id_to_pos:
+                w["order"] = id_to_pos[w["id"]]
+        config["widgets"] = widgets
+        utils.save_config(config)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/widgets/<widget_id>/vote", methods=["POST"])
+def api_widget_vote(widget_id):
+    """Session-protected poll voting."""
+    try:
+        data = request.json
+        option_id = data.get("option_id")
+        if not option_id:
+            return jsonify({"error": "option_id required"}), 400
+        voted_key = f"voted_{widget_id}"
+        if session.get(voted_key):
+            return jsonify({"error": "already_voted"}), 403
+        config = utils.load_config()
+        widgets = config.get("widgets", [])
+        w = next((x for x in widgets if x["id"] == widget_id and x["type"] == "poll"), None)
+        if not w:
+            return jsonify({"error": "poll_not_found"}), 404
+        options = w["data"].get("options", [])
+        opt = next((o for o in options if o["id"] == option_id), None)
+        if not opt:
+            return jsonify({"error": "option_not_found"}), 404
+        opt["votes"] = opt.get("votes", 0) + 1
+        config["widgets"] = widgets
+        utils.save_config(config)
+        session[voted_key] = True
+        return jsonify({"success": True, "options": options})
+    except Exception as e:
+        print(f"Error voting: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
 @app.route("/")
 def index():
     return render_template("index.html")

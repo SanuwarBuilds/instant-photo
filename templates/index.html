@@ -201,6 +201,376 @@
     </div>
   </div>
 
+  <!-- Dynamic Countdown Banners (managed from admin panel) -->
+  <div id="countdowns-wrapper"></div>
+
+  <style>
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+  </style>
+
+  <script>
+    // Load and render countdowns from admin-controlled API
+    (async function loadCountdownBanners() {
+      try {
+        const res = await fetch('/api/countdowns');
+        if (!res.ok) return;
+        const countdowns = await res.json();
+        const wrapper = document.getElementById('countdowns-wrapper');
+        if (!countdowns.length) { wrapper.innerHTML = ''; return; }
+
+        wrapper.innerHTML = countdowns.map(cd => `
+          <div style="
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #1e1b4b 100%);
+            border-bottom: 2px solid rgba(99,102,241,0.5);
+            padding: 8px 12px;
+            position: relative;
+            overflow: hidden;
+          ">
+            <div style="position:absolute;top:-30px;left:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(99,102,241,0.2) 0%,transparent 70%);pointer-events:none;"></div>
+            <div style="position:absolute;bottom:-30px;right:-30px;width:120px;height:120px;background:radial-gradient(circle,rgba(239,68,68,0.15) 0%,transparent 70%);pointer-events:none;"></div>
+
+            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:6px; position:relative; z-index:1; flex-wrap:wrap;">
+              <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);border-radius:999px;padding:2px 10px;">
+                <span style="width:6px;height:6px;border-radius:50%;background:#ef4444;display:inline-block;animation:pulse-dot 1.4s ease-in-out infinite;"></span>
+                <span style="font-size:10px;font-weight:600;color:#a5b4fc;letter-spacing:0.06em;text-transform:uppercase;">Live</span>
+              </div>
+              <span style="font-size:clamp(13px,3vw,16px);font-weight:700;background:linear-gradient(90deg,#c7d2fe,#a5b4fc,#818cf8,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0;letter-spacing:0.01em;">🗳️ ${cd.title}</span>
+            </div>
+
+            <div style="position:relative;z-index:1;max-width:600px;margin:0 auto;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(99,102,241,0.25);min-height:60px;">
+              <a data-type="countdown" data-id="${cd.tickcounter_id}" class="tickcounter"
+                style="display:block;left:0;width:100%;height:0;position:relative;padding-bottom:18%;margin:0 auto;font-size:0;color:transparent;"
+                title="${cd.title}" href="//www.tickcounter.com/"></a>
+            </div>
+          </div>
+        `).join('');
+
+        // Force-reload SDK so it picks up dynamically added anchors
+        const old = document.getElementById('tickcounter-sdk');
+        if (old) old.remove();
+        const js = document.createElement('script');
+        js.id = 'tickcounter-sdk';
+        js.src = '//www.tickcounter.com/static/js/loader.js';
+        document.body.appendChild(js);
+
+      } catch (e) { console.warn('Countdown load failed', e); }
+    })();
+  </script>
+
+  <!-- ===== HOME SCREEN WIDGET ZONE ===== -->
+  <div id="widgets-zone"></div>
+  <canvas id="fireworks-canvas" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:999;width:100%;height:100%;"></canvas>
+
+  <script>
+  // ============================================================
+  //  HOME SCREEN WIDGET RENDERER
+  // ============================================================
+  (async function initWidgets() {
+    try {
+      const res = await fetch('/api/widgets');
+      if (!res.ok) return;
+      const widgets = await res.json();
+      const zone = document.getElementById('widgets-zone');
+      if (!widgets.length) { zone.innerHTML = ''; return; }
+
+      let html = '';
+      for (const w of widgets) { html += renderWidget(w); }
+      zone.innerHTML = html;
+
+      // Post-render setup
+      widgets.forEach(w => {
+        if (w.type === 'winner' && w.data.fireworks) startFireworks();
+        if (w.type === 'gallery') initGallery(w.id, w.data.images || []);
+        if (w.type === 'ticker') initTicker(w.id);
+      });
+
+    } catch(e) { console.warn('Widget load failed', e); }
+  })();
+
+  // ---- Render dispatcher ----
+  function renderWidget(w) {
+    switch(w.type) {
+      case 'notice':      return renderNotice(w);
+      case 'poll':        return renderPoll(w);
+      case 'winner':      return renderWinner(w);
+      case 'person_card': return renderPersonCard(w);
+      case 'link_card':   return renderLinkCard(w);
+      case 'ticker':      return renderTicker2(w);
+      case 'gallery':     return renderGallery(w);
+      case 'event_card':  return renderEvent(w);
+      case 'quote':       return renderQuote(w);
+      case 'custom_html': return renderCustom(w);
+      default: return '';
+    }
+  }
+
+  // ---- 1. NOTICE ----
+  function renderNotice(w) {
+    const d = w.data;
+    const styles = {
+      info:    { bg:'rgba(59,130,246,0.15)', border:'#3b82f6', icon:'ℹ️', text:'#93c5fd' },
+      warning: { bg:'rgba(234,179,8,0.15)',  border:'#eab308', icon:'⚠️', text:'#fde047' },
+      success: { bg:'rgba(34,197,94,0.15)',  border:'#22c55e', icon:'✅', text:'#86efac' },
+      danger:  { bg:'rgba(239,68,68,0.15)',  border:'#ef4444', icon:'🚨', text:'#fca5a5' },
+    };
+    const s = styles[d.style] || styles.info;
+    return `<div style="background:${s.bg};border-left:4px solid ${s.border};padding:14px 20px;margin:0;position:relative;">
+      <div style="max-width:900px;margin:0 auto;display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:20px;flex-shrink:0;">${s.icon}</span>
+        <div>
+          ${d.title ? `<div style="font-weight:700;color:${s.text};font-size:15px;margin-bottom:2px;">${d.title}</div>` : ''}
+          <div style="color:#d1d5db;font-size:13px;line-height:1.5;">${d.message}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ---- 2. POLL ----
+  function renderPoll(w) {
+    const d = w.data;
+    const voted = localStorage.getItem('voted_' + w.id);
+    const total = (d.options||[]).reduce((s,o)=>s+(o.votes||0),0);
+
+    if (voted) {
+      // Show results
+      const bars = (d.options||[]).map(o => {
+        const pct = total ? Math.round((o.votes/total)*100) : 0;
+        const isWinner = o.votes === Math.max(...d.options.map(x=>x.votes)) && total > 0;
+        return `<div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span style="color:${isWinner?'#fbbf24':'#d1d5db'};font-weight:${isWinner?700:400};">${isWinner?'🥇 ':''}${o.text}</span>
+            <span style="color:#9ca3af;">${o.votes} votes (${pct}%)</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:99px;height:8px;overflow:hidden;">
+            <div style="height:100%;border-radius:99px;background:${isWinner?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#6366f1,#818cf8)'};width:${pct}%;transition:width 0.8s ease;"></div>
+          </div>
+        </div>`;
+      }).join('');
+      return `<div style="background:rgba(99,102,241,0.09);border-top:3px solid #6366f1;border-bottom:1px solid rgba(99,102,241,0.3);padding:20px 24px;">
+        <div style="max-width:700px;margin:0 auto;">
+          <div style="font-size:11px;color:#818cf8;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">🗳️ Poll Results • ${total} votes</div>
+          <div style="font-size:16px;font-weight:700;color:#e2e8f0;margin-bottom:14px;">${d.question}</div>
+          ${bars}
+          <div style="font-size:11px;color:#6b7280;margin-top:8px;">✓ You have already voted</div>
+        </div>
+      </div>`;
+    }
+
+    // Show voting UI
+    const opts = (d.options||[]).map(o =>
+      `<button onclick="castVote('${w.id}','${o.id}',this)" style="display:block;width:100%;text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:11px 16px;color:#e2e8f0;cursor:pointer;font-size:14px;margin-bottom:8px;transition:all 0.2s;" onmouseover="this.style.background='rgba(99,102,241,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">${o.text}</button>`
+    ).join('');
+    return `<div style="background:rgba(99,102,241,0.09);border-top:3px solid #6366f1;border-bottom:1px solid rgba(99,102,241,0.3);padding:20px 24px;">
+      <div style="max-width:700px;margin:0 auto;">
+        <div style="font-size:11px;color:#818cf8;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">🗳️ Vote Now</div>
+        <div style="font-size:16px;font-weight:700;color:#e2e8f0;margin-bottom:14px;">${d.question}</div>
+        <div id="poll-opts-${w.id}">${opts}</div>
+      </div>
+    </div>`;
+  }
+
+  async function castVote(widgetId, optionId, btn) {
+    btn.disabled = true; btn.textContent = 'Voting...';
+    try {
+      const res = await fetch(`/api/widgets/${widgetId}/vote`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({option_id: optionId})
+      });
+      if (res.status === 403) { localStorage.setItem('voted_'+widgetId,'1'); location.reload(); return; }
+      const data = await res.json();
+      if (data.success) { localStorage.setItem('voted_'+widgetId,'1'); location.reload(); }
+      else { btn.disabled=false; btn.textContent='Vote'; }
+    } catch(e) { btn.disabled=false; btn.textContent='Vote'; }
+  }
+
+  // ---- 3. WINNER CELEBRATION ----
+  function renderWinner(w) {
+    const d = w.data;
+    return `<div style="background:linear-gradient(135deg,#1e1010,#3b1a0a,#1e1010);border-top:3px solid #f59e0b;border-bottom:1px solid rgba(245,158,11,0.3);padding:24px 20px;text-align:center;" id="winner-banner-${w.id}">
+      <div style="font-size:40px;margin-bottom:8px;animation:bounce-winner 1s infinite alternate;">🏆</div>
+    const photoUrl = (d.photo_url || '').trim();
+    const winnerPhoto = photoUrl
+      ? `<img src="${photoUrl}" alt="" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #f59e0b;margin:0 auto 10px;display:block;" onerror="this.style.display='none'">`
+      : '';
+    return `<div style="background:linear-gradient(135deg,#1e1010,#3b1a0a,#1e1010);border-top:3px solid #f59e0b;border-bottom:1px solid rgba(245,158,11,0.3);padding:24px 20px;text-align:center;" id="winner-banner-${w.id}">
+      <div style="font-size:40px;margin-bottom:8px;animation:bounce-winner 1s infinite alternate;">🏆</div>
+      ${winnerPhoto}
+      <div style="font-size:11px;color:#fbbf24;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Congratulations!</div>
+      <div style="font-size:clamp(20px,5vw,30px);font-weight:900;background:linear-gradient(90deg,#fde68a,#f59e0b,#fde68a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;">${d.winner_name}</div>
+      ${d.event_name ? `<div style="color:#d97706;font-size:14px;font-weight:600;margin-bottom:8px;">${d.event_name}</div>` : ''}
+      ${d.message ? `<div style="color:#d1d5db;font-size:13px;max-width:500px;margin:0 auto;">${d.message}</div>` : ''}
+    </div>
+    <style>@keyframes bounce-winner{from{transform:scale(1)}to{transform:scale(1.2) rotate(5deg)}}</style>`;
+  }
+
+  // ---- 4. PERSON CARD ----
+  function renderPersonCard(w) {
+    const d = w.data;
+    const photoUrl = (d.photo_url || '').trim();
+    const photoHtml = photoUrl
+      ? `<img src="${photoUrl}" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #6366f1;flex-shrink:0;" onerror="this.style.display='none'">`
+      : `<div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a78bfa);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">👤</div>`;
+    return `<div style="background:rgba(30,41,59,0.7);border-bottom:1px solid rgba(255,255,255,0.07);padding:16px 20px;">
+      <div style="max-width:700px;margin:0 auto;display:flex;gap:16px;align-items:center;">
+        ${photoHtml}
+        <div>
+          <div style="font-size:17px;font-weight:700;color:#f1f5f9;">${d.name}</div>
+          ${d.role ? `<div style="font-size:13px;color:#818cf8;font-weight:500;margin-bottom:4px;">${d.role}</div>` : ''}
+          ${d.bio ? `<div style="font-size:12px;color:#94a3b8;line-height:1.5;">${d.bio}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ---- 5. LINK CARD ----
+  function renderLinkCard(w) {
+    const d = w.data;
+    const colors = { blue:'#3b82f6', green:'#22c55e', purple:'#a855f7', orange:'#f97316', red:'#ef4444' };
+    const c = colors[d.color] || colors.blue;
+    return `<div style="background:rgba(30,41,59,0.6);border-bottom:1px solid rgba(255,255,255,0.07);padding:14px 20px;">
+      <div style="max-width:700px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#f1f5f9;">${d.title||'External Link'}</div>
+          ${d.description ? `<div style="font-size:12px;color:#94a3b8;margin-top:2px;">${d.description}</div>` : ''}
+        </div>
+        <a href="${d.url}" target="_blank" rel="noopener" style="background:${c};color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;transition:opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🔗 ${d.button_text||'Visit Site'}</a>
+      </div>
+    </div>`;
+  }
+
+  // ---- 6. TICKER ----
+  function renderTicker2(w) {
+    const d = w.data;
+    const speed = {slow:'40s', medium:'25s', fast:'14s'}[d.speed] || '25s';
+    const msgs = (d.messages||[]).join('  •  ');
+    return `<div style="background:#1e293b;border-bottom:1px solid rgba(255,255,255,0.07);overflow:hidden;white-space:nowrap;" id="ticker-wrap-${w.id}">
+      <div style="display:inline-block;padding:8px 0;padding-left:100%;animation:ticker-scroll-${w.id} ${speed} linear infinite;" id="ticker-inner-${w.id}">
+        <span style="font-size:13px;font-weight:500;color:#e2e8f0;">📰 ${msgs}</span>
+      </div>
+      <style>@keyframes ticker-scroll-${w.id}{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}</style>
+    </div>`;
+  }
+  function initTicker(id) { /* CSS animation handles it */ }
+
+  // ---- 7. GALLERY ----
+  function renderGallery(w) {
+    const d = w.data;
+    const imgs = (d.images || []).filter(img => img && img.url && img.url.trim());
+    if (!imgs.length) return '';
+    const slides = imgs.map((img, i) => {
+      const url = img.url.trim();
+      const caption = (img.caption || '').trim();
+      return `<div class="gallery-slide-${w.id}" style="display:${i===0?'block':'none'};position:relative;background:#000;">
+        <img src="${url}" alt="" style="width:100%;max-height:300px;object-fit:cover;display:block;" onerror="this.parentElement.style.display='none'">
+        ${caption ? `<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.65);color:#fff;padding:8px 14px;font-size:13px;">${caption}</div>` : ''}
+      </div>`;
+    }).join('');
+    return `<div style="background:#0f172a;border-bottom:1px solid rgba(255,255,255,0.07);position:relative;" id="gallery-${w.id}">
+      ${d.title ? `<div style="padding:10px 16px 6px;font-size:13px;font-weight:600;color:#94a3b8;">🖼️ ${d.title}</div>` : ''}
+      <div id="gallery-slides-${w.id}">${slides}</div>
+      ${imgs.length > 1 ? `<div style="position:absolute;top:50%;transform:translateY(-50%);left:8px;right:8px;display:flex;justify-content:space-between;pointer-events:none;">
+        <button onclick="galleryNav('${w.id}',-1)" style="background:rgba(0,0,0,0.6);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;pointer-events:all;font-size:16px;">‹</button>
+        <button onclick="galleryNav('${w.id}',+1)" style="background:rgba(0,0,0,0.6);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;pointer-events:all;font-size:16px;">›</button>
+      </div>` : ''}
+      <div style="text-align:center;padding:6px;font-size:11px;color:#6b7280;" id="gallery-counter-${w.id}">${imgs.length > 1 ? `1 / ${imgs.length}` : ''}</div>
+    </div>`;
+  }
+
+  const _galleryIdx = {};
+  function initGallery(id, imgs) { _galleryIdx[id] = 0; }
+  function galleryNav(id, dir) {
+    const slides = document.querySelectorAll(`.gallery-slide-${id}`);
+    if (!slides.length) return;
+    slides[_galleryIdx[id]].style.display = 'none';
+    _galleryIdx[id] = (_galleryIdx[id] + dir + slides.length) % slides.length;
+    slides[_galleryIdx[id]].style.display = 'block';
+    const counter = document.getElementById(`gallery-counter-${id}`);
+    if (counter) counter.textContent = `${_galleryIdx[id]+1} / ${slides.length}`;
+  }
+
+  // ---- 8. EVENT CARD ----
+  function renderEvent(w) {
+    const d = w.data;
+    const dateStr = d.date ? new Date(d.date).toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) : '';
+    return `<div style="background:rgba(30,41,59,0.6);border-bottom:1px solid rgba(255,255,255,0.07);padding:14px 20px;">
+      <div style="max-width:700px;margin:0 auto;">
+        <div style="font-size:11px;color:#f472b6;text-transform:uppercase;font-weight:600;letter-spacing:.06em;margin-bottom:4px;">📅 Upcoming Event</div>
+        <div style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">${d.title}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;">
+          ${dateStr?`<span style="font-size:12px;color:#94a3b8;">🗓️ ${dateStr}</span>`:''}
+          ${d.time?`<span style="font-size:12px;color:#94a3b8;">⏰ ${d.time}</span>`:''}
+          ${d.venue?`<span style="font-size:12px;color:#94a3b8;">📍 ${d.venue}</span>`:''}
+        </div>
+        ${d.description?`<div style="font-size:12px;color:#94a3b8;margin-top:8px;">${d.description}</div>`:''}
+      </div>
+    </div>`;
+  }
+
+  // ---- 9. QUOTE ----
+  function renderQuote(w) {
+    const d = w.data;
+    const bgs = {
+      dark:'background:rgba(0,0,0,0.5)',
+      gradient:'background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(168,85,247,0.2))',
+      light:'background:rgba(255,255,255,0.06)'
+    };
+    return `<div style="${bgs[d.bg]||bgs.gradient};border-bottom:1px solid rgba(255,255,255,0.07);padding:18px 24px;text-align:center;">
+      <div style="max-width:700px;margin:0 auto;">
+        <div style="font-size:36px;color:rgba(255,255,255,0.2);line-height:1;margin-bottom:4px;">"</div>
+        <div style="font-size:clamp(14px,3vw,18px);color:#e2e8f0;font-style:italic;line-height:1.6;margin-bottom:8px;">${d.text}</div>
+        ${d.author?`<div style="font-size:13px;color:#818cf8;font-weight:600;">${d.author}</div>`:''}
+      </div>
+    </div>`;
+  }
+
+  // ---- 10. CUSTOM HTML ----
+  function renderCustom(w) {
+    return `<div style="border-bottom:1px solid rgba(255,255,255,0.05);">${w.data.html||''}</div>`;
+  }
+
+  // ============================================================
+  //  FIREWORKS ANIMATION (for winner widget)
+  // ============================================================
+  function startFireworks() {
+    const canvas = document.getElementById('fireworks-canvas');
+    canvas.style.display = 'block';
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    const ctx = canvas.getContext('2d');
+    const particles = [];
+    const colors = ['#f59e0b','#ef4444','#6366f1','#22c55e','#f472b6','#38bdf8','#fde68a'];
+
+    function spawnBurst() {
+      const x = Math.random()*canvas.width, y = Math.random()*canvas.height*0.5;
+      for(let i=0; i<60; i++) {
+        const ang = (Math.PI*2/60)*i, speed = 2+Math.random()*4;
+        particles.push({ x, y, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed, life:1, color:colors[Math.floor(Math.random()*colors.length)] });
+      }
+    }
+    spawnBurst();
+    let t = 0, burstsDone = 0;
+    function loop() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      t++;
+      if(t%40===0 && burstsDone < 8) { spawnBurst(); burstsDone++; }
+      for(let i=particles.length-1; i>=0; i--) {
+        const p = particles[i];
+        p.x+=p.vx; p.y+=p.vy; p.vy+=0.12; p.life-=0.015;
+        if(p.life<=0) { particles.splice(i,1); continue; }
+        ctx.globalAlpha=p.life; ctx.fillStyle=p.color;
+        ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha=1;
+      if(particles.length>0 || burstsDone<8) requestAnimationFrame(loop);
+      else { setTimeout(()=>canvas.style.display='none', 500); }
+    }
+    loop();
+    window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+  }
+  </script>
+
   <!-- Main -->
   <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div

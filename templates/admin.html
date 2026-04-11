@@ -88,7 +88,111 @@
         <div class="px-5 py-8 text-center text-gray-500">Loading keys...</div>
       </div>
     </div>
+
+    <!-- ⏱️ Countdown Management Section -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+      <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/40">
+        <h3 class="text-lg font-bold flex items-center gap-2">
+          <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Countdown Banners
+        </h3>
+        <button onclick="openAddCountdownModal()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg hover:shadow-purple-500/20">
+          + Add Countdown
+        </button>
+      </div>
+      <div id="countdownsTableBody" class="divide-y divide-gray-800 flex flex-col">
+        <div class="px-5 py-8 text-center text-gray-500">Loading countdowns...</div>
+      </div>
+    </div>
+
+    <!-- 🏠 Home Screen Builder -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+      <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/40">
+        <h3 class="text-lg font-bold flex items-center gap-2">
+          <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+          Home Screen Builder
+        </h3>
+        <button onclick="openAddWidgetModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg">
+          + Add Widget
+        </button>
+      </div>
+      <div class="px-5 py-2 bg-gray-900/20 text-xs text-gray-500 border-b border-gray-800">
+        10 widget types available • All controlled from here • Drag order using ↑↓ buttons
+      </div>
+      <div id="widgetsTableBody" class="divide-y divide-gray-800 flex flex-col">
+        <div class="px-5 py-8 text-center text-gray-500">Loading widgets...</div>
+      </div>
+    </div>
+
   </main>
+
+  <!-- Add Widget Modal -->
+  <div id="addWidgetModal" class="fixed inset-0 z-[200] hidden">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeAddWidgetModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-3" style="max-height:90vh;overflow-y:auto;">
+      <div class="glass-card p-6 rounded-2xl shadow-2xl relative">
+        <button onclick="closeAddWidgetModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl z-10">&times;</button>
+        <h3 class="text-xl font-bold mb-1">Add Widget</h3>
+        <p class="text-xs text-gray-500 mb-4">Choose type and fill in the details</p>
+
+        <form id="addWidgetForm" class="space-y-4" onsubmit="submitAddWidget(event)">
+          <!-- Type Selector -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Widget Type</label>
+            <select id="newWidgetType" onchange="updateWidgetFields('new')"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="notice">📢 Notice / Alert</option>
+              <option value="poll">🗳️ Poll (with vote count %)</option>
+              <option value="winner">🏆 Winner Celebration (Fireworks)</option>
+              <option value="person_card">👤 Person Card (Photo + Name)</option>
+              <option value="link_card">🔗 Link Card (Any Website)</option>
+              <option value="ticker">📰 Scrolling Ticker Text</option>
+              <option value="gallery">🖼️ Image Gallery / Slideshow</option>
+              <option value="event_card">📅 Event Card</option>
+              <option value="quote">💬 Quote / Message</option>
+              <option value="custom_html">⚙️ Custom HTML Block</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="newWidgetEnabled" checked class="w-4 h-4 accent-emerald-500">
+            <label for="newWidgetEnabled" class="text-sm text-gray-300">Show on home screen</label>
+          </div>
+
+          <!-- Dynamic Fields -->
+          <div id="widgetFields-new"></div>
+
+          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-3 rounded-xl transition-all active:scale-95">
+            Save Widget
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Widget Modal -->
+  <div id="editWidgetModal" class="fixed inset-0 z-[200] hidden">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeEditWidgetModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-3" style="max-height:90vh;overflow-y:auto;">
+      <div class="glass-card p-6 rounded-2xl shadow-2xl relative">
+        <button onclick="closeEditWidgetModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl z-10">&times;</button>
+        <h3 class="text-xl font-bold mb-4">Edit Widget</h3>
+        <input type="hidden" id="editWidgetId">
+        <input type="hidden" id="editWidgetType">
+        <form id="editWidgetForm" class="space-y-4" onsubmit="submitEditWidget(event)">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="editWidgetEnabled" class="w-4 h-4 accent-emerald-500">
+            <label for="editWidgetEnabled" class="text-sm text-gray-300">Show on home screen</label>
+          </div>
+          <div id="widgetFields-edit"></div>
+          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-3 rounded-xl transition-all active:scale-95">
+            Update Widget
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Add Key Modal -->
   <div id="addModal" class="fixed inset-0 z-[100] hidden">
@@ -120,6 +224,69 @@
       </div>
     </div>
   </div>
+
+  <!-- Add Countdown Modal -->
+  <div id="addCountdownModal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAddCountdownModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm px-4">
+      <div class="glass-card p-6 rounded-2xl shadow-2xl relative">
+        <button onclick="closeAddCountdownModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+        <h3 class="text-xl font-bold mb-1">Add Countdown Banner</h3>
+        <p class="text-xs text-gray-500 mb-5">Tickcounter ID = number from the <code class="text-purple-400">data-id</code> attribute</p>
+        <form id="addCountdownForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Title</label>
+            <input type="text" id="cdTitle" placeholder="e.g. Assam Election Result 2026" required
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Tickcounter ID</label>
+            <input type="text" id="cdTickId" placeholder="e.g. 9976258" required
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none placeholder-gray-600">
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="cdEnabled" checked class="w-4 h-4 accent-purple-500 cursor-pointer">
+            <label for="cdEnabled" class="text-sm text-gray-300 cursor-pointer">Show on home screen</label>
+          </div>
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 font-bold text-white py-3 rounded-xl transition-all shadow-lg active:scale-95 mt-2">
+            Save Countdown
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Countdown Modal -->
+  <div id="editCountdownModal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeEditCountdownModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm px-4">
+      <div class="glass-card p-6 rounded-2xl shadow-2xl relative">
+        <button onclick="closeEditCountdownModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+        <h3 class="text-xl font-bold mb-5">Edit Countdown</h3>
+        <input type="hidden" id="editCdId">
+        <form id="editCountdownForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Title</label>
+            <input type="text" id="editCdTitle" required
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Tickcounter ID</label>
+            <input type="text" id="editCdTickId" required
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="editCdEnabled" class="w-4 h-4 accent-purple-500 cursor-pointer">
+            <label for="editCdEnabled" class="text-sm text-gray-300 cursor-pointer">Show on home screen</label>
+          </div>
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 font-bold text-white py-3 rounded-xl transition-all shadow-lg active:scale-95 mt-2">
+            Update Countdown
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
 
   <script>
     // --- Data Fetching ---
@@ -292,8 +459,414 @@
       }
     }
 
+    // ---- COUNTDOWN FUNCTIONS ----
+
+    async function loadCountdowns() {
+      try {
+        const res = await fetch('/api/admin/countdowns');
+        if (res.status === 401) { window.location.href = '/admin/login'; return; }
+        const countdowns = await res.json();
+        renderCountdownsTable(countdowns);
+      } catch (e) {
+        document.getElementById('countdownsTableBody').innerHTML = `<div class="px-5 py-6 text-center text-red-400">Failed to load countdowns</div>`;
+      }
+    }
+
+    function renderCountdownsTable(countdowns) {
+      const tbody = document.getElementById('countdownsTableBody');
+      if (!countdowns.length) {
+        tbody.innerHTML = `<div class="px-5 py-8 text-center text-gray-500">No countdowns yet. Click "+ Add Countdown" to create one.</div>`;
+        return;
+      }
+      tbody.innerHTML = countdowns.map(cd => `
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-gray-800/30 transition-colors group">
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-gray-200 truncate">🗳️ ${cd.title}</div>
+            <div class="text-xs text-purple-400 font-mono mt-0.5">ID: ${cd.tickcounter_id}</div>
+          </div>
+          <div class="flex items-center gap-3 flex-shrink-0">
+            <span class="${cd.enabled ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-400 border-gray-600'} border px-2 py-1 rounded text-xs font-semibold">
+              ${cd.enabled ? 'VISIBLE' : 'HIDDEN'}
+            </span>
+            <button onclick="toggleCountdown('${cd.id}', ${cd.enabled})"
+              class="text-xs ${cd.enabled ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'} px-3 py-1.5 rounded-lg transition-colors">
+              ${cd.enabled ? 'Hide' : 'Show'}
+            </button>
+            <button onclick="openEditCountdownModal('${cd.id}', \`${cd.title.replace(/`/g,"'")}\`, '${cd.tickcounter_id}', ${cd.enabled})"
+              class="text-xs bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition-colors">
+              Edit
+            </button>
+            <button onclick="deleteCountdown('${cd.id}', this)"
+              class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-colors">
+              Delete
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Add Countdown Modal
+    function openAddCountdownModal() { document.getElementById('addCountdownModal').classList.remove('hidden'); }
+    function closeAddCountdownModal() {
+      document.getElementById('addCountdownModal').classList.add('hidden');
+      document.getElementById('addCountdownForm').reset();
+    }
+
+    document.getElementById('addCountdownForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      try {
+        const res = await fetch('/api/admin/countdowns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: document.getElementById('cdTitle').value,
+            tickcounter_id: document.getElementById('cdTickId').value,
+            enabled: document.getElementById('cdEnabled').checked
+          })
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Server error');
+        closeAddCountdownModal();
+        await loadCountdowns();
+      } catch (err) {
+        alert('Failed to add countdown: ' + err.message);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Countdown';
+      }
+    });
+
+    // Edit Countdown Modal
+    function openEditCountdownModal(id, title, tickId, enabled) {
+      document.getElementById('editCdId').value = id;
+      document.getElementById('editCdTitle').value = title;
+      document.getElementById('editCdTickId').value = tickId;
+      document.getElementById('editCdEnabled').checked = enabled;
+      document.getElementById('editCountdownModal').classList.remove('hidden');
+    }
+    function closeEditCountdownModal() {
+      document.getElementById('editCountdownModal').classList.add('hidden');
+    }
+
+    document.getElementById('editCountdownForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('editCdId').value;
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true; btn.textContent = 'Updating...';
+      try {
+        const res = await fetch(`/api/admin/countdowns/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: document.getElementById('editCdTitle').value,
+            tickcounter_id: document.getElementById('editCdTickId').value,
+            enabled: document.getElementById('editCdEnabled').checked
+          })
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Server error');
+        closeEditCountdownModal();
+        await loadCountdowns();
+      } catch (err) {
+        alert('Failed to update countdown: ' + err.message);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Update Countdown';
+      }
+    });
+
+    // Toggle visible/hidden
+    async function toggleCountdown(id, currentlyEnabled) {
+      try {
+        const res = await fetch(`/api/admin/countdowns/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: !currentlyEnabled })
+        });
+        if (!res.ok) throw new Error('Server error');
+        await loadCountdowns();
+      } catch (e) { alert('Failed to toggle: ' + e.message); }
+    }
+
+    // Delete countdown
+    async function deleteCountdown(id, btn) {
+      if (!confirm('Delete this countdown?')) return;
+      btn.disabled = true; btn.textContent = '...';
+      try {
+        const res = await fetch(`/api/admin/countdowns/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Server error');
+        await loadCountdowns();
+      } catch (e) {
+        alert('Failed to delete: ' + e.message);
+        btn.disabled = false; btn.textContent = 'Delete';
+      }
+    }
+
     // Init
     loadDashboard();
+    loadCountdowns();
+
+    // ===================== WIDGET FUNCTIONS =====================
+
+    const WIDGET_LABELS = {
+      notice:'📢 Notice', poll:'🗳️ Poll', winner:'🏆 Winner',
+      person_card:'👤 Person Card', link_card:'🔗 Link Card',
+      ticker:'📰 Ticker', gallery:'🖼️ Gallery',
+      event_card:'📅 Event', quote:'💬 Quote', custom_html:'⚙️ Custom HTML'
+    };
+
+    function getWidgetFieldsHTML(type, d={}) {
+      const inp = (id,ph,val='',type2='text') => `<input type="${type2}" id="${id}" placeholder="${ph}" value="${val.toString().replace(/"/g,'&quot;')}" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">`;
+      const ta  = (id,ph,val='') => `<textarea id="${id}" placeholder="${ph}" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">${val}</textarea>`;
+      const lbl = (text) => `<label class="block text-xs font-semibold text-gray-400 uppercase mb-1">${text}</label>`;
+      const sel = (id,opts,val='') => `<select id="${id}" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">${opts.map(o=>`<option value="${o.v}" ${o.v===val?'selected':''}>${o.l}</option>`).join('')}</select>`;
+
+      switch(type) {
+        case 'notice': return `
+          <div>${lbl('Title')}${inp('wf_title','Alert title',d.title||'')}</div>
+          <div>${lbl('Message')}${ta('wf_message','Your notice message...',d.message||'')}</div>
+          <div>${lbl('Style')}${sel('wf_style',[{v:'info',l:'ℹ️ Info (Blue)'},{v:'warning',l:'⚠️ Warning (Yellow)'},{v:'success',l:'✅ Success (Green)'},{v:'danger',l:'🚨 Danger (Red)'}],d.style||'info')}</div>`;
+
+        case 'poll': return `
+          <div>${lbl('Question')}${inp('wf_question','e.g. Who should win?',d.question||'')}</div>
+          <div><div class="flex justify-between items-center mb-1">${lbl('Options')}<button type="button" onclick="addPollOption()" class="text-xs text-emerald-400 hover:text-emerald-300">+ Add Option</button></div>
+          <div id="pollOptions" class="space-y-2">${(d.options||[{id:'opt1',text:'',votes:0},{id:'opt2',text:'',votes:0}]).map((o,i)=>`<div class="flex gap-2 items-center"><input type="text" class="poll-opt-input flex-1 bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Option ${i+1}" value="${o.text.replace(/"/g,'&quot;')}" data-id="${o.id}" data-votes="${o.votes}"><span class="text-xs text-gray-500 w-12 text-right">${o.votes} votes</span></div>`).join('')}</div></div>`;
+
+        case 'winner': return `
+          <div>${lbl('Winner Name')}${inp('wf_winner_name','e.g. Rahul Das',d.winner_name||'')}</div>
+          <div>${lbl('Event / Award Name')}${inp('wf_event_name','e.g. Best Player 2026',d.event_name||'')}</div>
+          <div>${lbl('Photo URL (optional)')}${inp('wf_photo_url','https://...',d.photo_url||'')}</div>
+          <div>${lbl('Congratulation Message')}${ta('wf_message','Congratulations! You won...',d.message||'')}</div>
+          <div class="flex items-center gap-2"><input type="checkbox" id="wf_fireworks" ${d.fireworks!==false?'checked':''} class="accent-emerald-500 w-4 h-4"><label for="wf_fireworks" class="text-sm text-gray-300">🎆 Enable Fireworks Animation</label></div>`;
+
+        case 'person_card': return `
+          <div>${lbl('Full Name')}${inp('wf_name','e.g. Dr. Aminul Islam',d.name||'')}</div>
+          <div>${lbl('Role / Designation')}${inp('wf_role','e.g. Chief Minister',d.role||'')}</div>
+          <div>${lbl('Photo URL')}${inp('wf_photo_url','https://...',d.photo_url||'')}</div>
+          <div>${lbl('Short Bio')}${ta('wf_bio','A brief description...',d.bio||'')}</div>`;
+
+        case 'link_card': return `
+          <div>${lbl('Card Title')}${inp('wf_title','e.g. Official Election Website',d.title||'')}</div>
+          <div>${lbl('URL')}${inp('wf_url','https://example.com',d.url||'')}</div>
+          <div>${lbl('Description')}${inp('wf_description','Short description',d.description||'')}</div>
+          <div>${lbl('Button Text')}${inp('wf_button_text','Visit Site',d.button_text||'Visit Site')}</div>
+          <div>${lbl('Color Theme')}${sel('wf_color',[{v:'blue',l:'🔵 Blue'},{v:'green',l:'🟢 Green'},{v:'purple',l:'🟣 Purple'},{v:'orange',l:'🟠 Orange'},{v:'red',l:'🔴 Red'}],d.color||'blue')}</div>`;
+
+        case 'ticker': return `
+          <div>${lbl('Ticker Messages (one per line)')}${ta('wf_messages','Breaking News: ...\nImportant Update: ...',(d.messages||[]).join('\n'))}</div>
+          <div>${lbl('Speed')}${sel('wf_speed',[{v:'slow',l:'🐢 Slow'},{v:'medium',l:'🚶 Medium'},{v:'fast',l:'🏃 Fast'}],d.speed||'medium')}</div>`;
+
+        case 'gallery': return `
+          <div>${lbl('Gallery Title')}${inp('wf_title','Photo Gallery',d.title||'Photo Gallery')}</div>
+          <div>${lbl('Image URLs (one per line, optional: url|caption)')}${ta('wf_images','https://img1.jpg|Caption 1\nhttps://img2.jpg|Caption 2',(d.images||[]).map(i=>i.caption?`${i.url}|${i.caption}`:i.url).join('\n'))}</div>`;
+
+        case 'event_card': return `
+          <div>${lbl('Event Title')}${inp('wf_title','e.g. Vote Counting Event',d.title||'')}</div>
+          <div class="grid grid-cols-2 gap-3"><div>${lbl('Date')}${inp('wf_date','',d.date||'','date')}</div><div>${lbl('Time')}${inp('wf_time','',d.time||'','time')}</div></div>
+          <div>${lbl('Venue / Location')}${inp('wf_venue','e.g. Dispur, Assam',d.venue||'')}</div>
+          <div>${lbl('Description')}${ta('wf_description','Details about the event...',d.description||'')}</div>`;
+
+        case 'quote': return `
+          <div>${lbl('Quote Text')}${ta('wf_text','Your inspirational quote here...',d.text||'')}</div>
+          <div>${lbl('Author')}${inp('wf_author','e.g. — APJ Abdul Kalam',d.author||'')}</div>
+          <div>${lbl('Background Style')}${sel('wf_bg',[{v:'dark',l:'🌑 Dark'},{v:'gradient',l:'🌈 Gradient'},{v:'light',l:'⬜ Light'}],d.bg||'gradient')}</div>`;
+
+        case 'custom_html': return `
+          <div>${lbl('Custom HTML Code')}<textarea id="wf_html" rows="6" placeholder="<div>Your HTML here...</div>" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">${(d.html||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div>
+          <p class="text-xs text-yellow-500">⚠️ Use carefully — raw HTML will be rendered on home page</p>`;
+
+        default: return '';
+      }
+    }
+
+    function updateWidgetFields(prefix) {
+      const type = prefix === 'new'
+        ? document.getElementById('newWidgetType').value
+        : document.getElementById('editWidgetType').value;
+      document.getElementById(`widgetFields-${prefix}`).innerHTML = getWidgetFieldsHTML(type);
+    }
+
+    function addPollOption() {
+      const container = document.getElementById('pollOptions');
+      const count = container.querySelectorAll('.poll-opt-input').length + 1;
+      const id = 'opt' + Date.now();
+      const div = document.createElement('div');
+      div.className = 'flex gap-2 items-center';
+      div.innerHTML = `<input type="text" class="poll-opt-input flex-1 bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Option ${count}" data-id="${id}" data-votes="0"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-300 text-lg px-1">×</button>`;
+      container.appendChild(div);
+    }
+
+    function collectWidgetData(prefix) {
+      const type = prefix === 'new'
+        ? document.getElementById('newWidgetType').value
+        : document.getElementById('editWidgetType').value;
+      const g = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+      const gc = (id) => { const el = document.getElementById(id); return el ? el.checked : false; };
+
+      switch(type) {
+        case 'notice':   return { title: g('wf_title'), message: g('wf_message'), style: g('wf_style') };
+        case 'poll': {
+          const question = g('wf_question');
+          const opts = [...document.querySelectorAll('.poll-opt-input')].map(el => ({
+            id: el.dataset.id, text: el.value.trim(), votes: parseInt(el.dataset.votes||0)
+          })).filter(o => o.text);
+          return { question, options: opts };
+        }
+        case 'winner':     return { winner_name: g('wf_winner_name'), event_name: g('wf_event_name'), photo_url: g('wf_photo_url'), message: g('wf_message'), fireworks: gc('wf_fireworks') };
+        case 'person_card': return { name: g('wf_name'), role: g('wf_role'), photo_url: g('wf_photo_url'), bio: g('wf_bio') };
+        case 'link_card':  return { title: g('wf_title'), url: g('wf_url'), description: g('wf_description'), button_text: g('wf_button_text'), color: g('wf_color') };
+        case 'ticker':     return { messages: g('wf_messages').split('\n').map(s=>s.trim()).filter(Boolean), speed: g('wf_speed') };
+        case 'gallery': {
+          const imgs = g('wf_images').split('\n').filter(Boolean).map(line => {
+            const [url, caption] = line.split('|'); return { url: url.trim(), caption: (caption||'').trim() };
+          });
+          return { title: g('wf_title'), images: imgs };
+        }
+        case 'event_card': return { title: g('wf_title'), date: g('wf_date'), time: g('wf_time'), venue: g('wf_venue'), description: g('wf_description') };
+        case 'quote':      return { text: g('wf_text'), author: g('wf_author'), bg: g('wf_bg') };
+        case 'custom_html': return { html: document.getElementById('wf_html') ? document.getElementById('wf_html').value : '' };
+        default: return {};
+      }
+    }
+
+    // Load all widgets
+    async function loadWidgets() {
+      try {
+        const res = await fetch('/api/admin/widgets');
+        if (res.status === 401) { window.location.href='/admin/login'; return; }
+        renderWidgetsTable(await res.json());
+      } catch (e) {
+        document.getElementById('widgetsTableBody').innerHTML = `<div class="px-5 py-6 text-center text-red-400">Failed to load widgets</div>`;
+      }
+    }
+
+    function renderWidgetsTable(widgets) {
+      const tb = document.getElementById('widgetsTableBody');
+      if (!widgets.length) {
+        tb.innerHTML = `<div class="px-5 py-8 text-center text-gray-500">No widgets yet. Click "+ Add Widget" to create one.</div>`;
+        return;
+      }
+      tb.innerHTML = widgets.map((w, idx) => `
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-4 hover:bg-gray-800/30 transition-colors group">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="flex flex-col gap-0.5">
+              <button onclick="moveWidget('${w.id}', ${idx}, -1)" ${idx===0?'disabled':''} class="text-gray-500 hover:text-gray-300 disabled:opacity-20 text-xs leading-none">▲</button>
+              <button onclick="moveWidget('${w.id}', ${idx}, +1)" ${idx===widgets.length-1?'disabled':''} class="text-gray-500 hover:text-gray-300 disabled:opacity-20 text-xs leading-none">▼</button>
+            </div>
+            <span class="text-lg">${WIDGET_LABELS[w.type]?.split(' ')[0]||'📦'}</span>
+            <div class="min-w-0">
+              <div class="font-medium text-gray-200 text-sm truncate">${WIDGET_LABELS[w.type]||w.type}</div>
+              <div class="text-xs text-gray-500 truncate">${getWidgetPreview(w)}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
+            <span class="${w.enabled ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-400 border-gray-600'} border px-2 py-1 rounded text-xs font-semibold">${w.enabled ? 'ON' : 'OFF'}</span>
+            <button onclick="toggleWidget('${w.id}', ${w.enabled})" class="text-xs ${w.enabled?'bg-yellow-500/10 text-yellow-400':'bg-green-500/10 text-green-400'} px-3 py-1.5 rounded-lg">${w.enabled?'Hide':'Show'}</button>
+            <button onclick="openEditWidgetModal(${JSON.stringify(w).replace(/"/g,'&quot;')})" class="text-xs bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg">Edit</button>
+            <button onclick="deleteWidget('${w.id}', this)" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getWidgetPreview(w) {
+      const d = w.data || {};
+      switch(w.type) {
+        case 'notice': return d.title || d.message || '';
+        case 'poll':   return d.question || '';
+        case 'winner': return d.winner_name || '';
+        case 'person_card': return `${d.name||''} — ${d.role||''}`;
+        case 'link_card': return d.url || d.title || '';
+        case 'ticker': return (d.messages||[]).join(' • ').substring(0,60);
+        case 'gallery': return `${(d.images||[]).length} images — ${d.title||''}`;
+        case 'event_card': return `${d.title||''} ${d.date||''}`;
+        case 'quote': return `"${(d.text||'').substring(0,40)}"`;
+        case 'custom_html': return 'Custom HTML block';
+        default: return '';
+      }
+    }
+
+    // Open modals
+    function openAddWidgetModal() {
+      document.getElementById('addWidgetModal').classList.remove('hidden');
+      updateWidgetFields('new');
+    }
+    function closeAddWidgetModal() {
+      document.getElementById('addWidgetModal').classList.add('hidden');
+      document.getElementById('addWidgetForm').reset();
+    }
+    function openEditWidgetModal(w) {
+      document.getElementById('editWidgetId').value = w.id;
+      document.getElementById('editWidgetType').value = w.type;
+      document.getElementById('editWidgetEnabled').checked = w.enabled;
+      document.getElementById('widgetFields-edit').innerHTML = getWidgetFieldsHTML(w.type, w.data||{});
+      document.getElementById('editWidgetModal').classList.remove('hidden');
+    }
+    function closeEditWidgetModal() { document.getElementById('editWidgetModal').classList.add('hidden'); }
+
+    // Submit add
+    async function submitAddWidget(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      try {
+        const type = document.getElementById('newWidgetType').value;
+        const res = await fetch('/api/admin/widgets', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ type, enabled: document.getElementById('newWidgetEnabled').checked, data: collectWidgetData('new') })
+        });
+        if (!res.ok) throw new Error((await res.json()).error||'Server error');
+        closeAddWidgetModal(); await loadWidgets();
+      } catch(err) { alert('Failed: '+err.message); }
+      finally { btn.disabled=false; btn.textContent='Save Widget'; }
+    }
+
+    // Submit edit
+    async function submitEditWidget(e) {
+      e.preventDefault();
+      const id = document.getElementById('editWidgetId').value;
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true; btn.textContent = 'Updating...';
+      try {
+        const res = await fetch(`/api/admin/widgets/${id}`, {
+          method: 'PUT', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ enabled: document.getElementById('editWidgetEnabled').checked, data: collectWidgetData('edit') })
+        });
+        if (!res.ok) throw new Error((await res.json()).error||'Server error');
+        closeEditWidgetModal(); await loadWidgets();
+      } catch(err) { alert('Failed: '+err.message); }
+      finally { btn.disabled=false; btn.textContent='Update Widget'; }
+    }
+
+    async function toggleWidget(id, currently) {
+      try {
+        const res = await fetch(`/api/admin/widgets/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({enabled:!currently}) });
+        if (!res.ok) throw new Error('Server error');
+        await loadWidgets();
+      } catch(e) { alert('Toggle failed: '+e.message); }
+    }
+
+    async function deleteWidget(id, btn) {
+      if (!confirm('Delete this widget?')) return;
+      btn.disabled=true; btn.textContent='...';
+      try {
+        const res = await fetch(`/api/admin/widgets/${id}`, { method:'DELETE' });
+        if (!res.ok) throw new Error('Server error');
+        await loadWidgets();
+      } catch(e) { alert('Delete failed: '+e.message); btn.disabled=false; btn.textContent='Delete'; }
+    }
+
+    async function moveWidget(id, currentIdx, direction) {
+      const res = await fetch('/api/admin/widgets');
+      const widgets = await res.json();
+      const order = widgets.map(w => w.id);
+      const newIdx = currentIdx + direction;
+      if (newIdx < 0 || newIdx >= order.length) return;
+      [order[currentIdx], order[newIdx]] = [order[newIdx], order[currentIdx]];
+      await fetch('/api/admin/widgets/reorder', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order}) });
+      await loadWidgets();
+    }
+
+    loadWidgets();
+
   </script>
 </body>
 </html>
