@@ -30,25 +30,5 @@
     "message": "Server is currently down for maintenance"
   },
   "countdowns": [],
-  "widgets": [
-    {
-      "id": "372acdcf-27ab-49ad-b560-356d93962f95",
-      "type": "winner",
-      "enabled": true,
-      "order": 1,
-      "data": {
-        "winner_name": "hihhh",
-        "event_name": "jnjnjj",
-        "photo_url": "https://res.cloudinary.com/dx3gpnczk/image/upload/v1775958187/hqyjuytzdyrkkmtpogk2.jpg",
-        "message": "",
-        "fireworks": true,
-        "fireworks_text": "AIUDF",
-        "fw_duration": "999",
-        "fw_intensity": "60",
-        "fw_tstyle": "sans-serif",
-        "fw_tsize": "20"
-      },
-      "created_at": "2026-04-12T07:13:11.596189"
-    }
-  ]
+  "widgets": []
 }
