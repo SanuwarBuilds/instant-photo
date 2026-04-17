@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="App and File Download Hub">
+  <title>App Download Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --font-family: 'Outfit', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: radial-gradient(circle at top right, rgba(59, 130, 246, 0.15), transparent 40%),
+                        radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.15), transparent 40%);
+    }
+
+    /* Navbar Styles */
+    header {
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      font-size: 1.5rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .menu-container {
+      position: relative;
+    }
+
+    .menu-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+      transition: background 0.3s;
+    }
+
+    .menu-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      border-radius: 0.75rem;
+      min-width: 200px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .dropdown.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .dropdown a {
+      display: block;
+      padding: 0.75rem 1.25rem;
+      color: var(--text-main);
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .dropdown a:first-child { border-radius: 0.75rem 0.75rem 0 0; }
+    .dropdown a:last-child { border-radius: 0 0 0.75rem 0.75rem; }
+
+    .dropdown a:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #60a5fa;
+    }
+
+    /* Main Content */
+    main {
+      flex: 1;
+      padding: 3rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      font-weight: 600;
+      text-align: center;
+      position: relative;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 4px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+
+    /* Card Styles */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+      border-color: rgba(96, 165, 250, 0.3);
+    }
+
+    .card-img-wrapper {
+      position: relative;
+      height: 180px;
+      width: 100%;
+      background: #1e293b;
+      overflow: hidden;
+    }
+
+    .card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+
+    .card:hover .card-img {
+      transform: scale(1.05);
+    }
+
+    .card-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+
+    .card-content {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .card-version {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      background: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+      border-radius: 1rem;
+      font-weight: 600;
+      white-space: nowrap;
+      margin-left: 0.5rem;
+    }
+
+    .card-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      flex: 1;
+    }
+
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      color: white;
+      text-decoration: none;
+      padding: 0.875rem;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      transition: filter 0.2s, transform 0.1s;
+      width: 100%;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-download:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-download:active {
+      transform: scale(0.98);
+    }
+
+    /* Loader */
+    .loader {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+      width: 100%;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-msg {
+      text-align: center;
+      color: #f87171;
+      padding: 2rem;
+      background: rgba(248, 113, 113, 0.1);
+      border-radius: 0.75rem;
+      border: 1px solid rgba(248, 113, 113, 0.2);
+      grid-column: 1 / -1;
+    }
+
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; }
+      main { padding: 2rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <i class="fa-solid fa-layer-group"></i>
+      AppHub
+    </div>
+    <div class="menu-container">
+      <button class="menu-btn" id="menuToggle" aria-label="Toggle menu">
+        <i class="fa-solid fa-ellipsis-vertical"></i>
+      </button>
+      <div class="dropdown" id="dropdownMenu">
+        <a href="#" id="mainDownloadLink" download><i class="fa-solid fa-download" style="width: 20px;"></i> Download App</a>
+        <a href="https://github.com" target="_blank"><i class="fa-brands fa-github" style="width: 20px;"></i> GitHub Repo</a>
+        <a href="#"><i class="fa-solid fa-circle-info" style="width: 20px;"></i> About</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <h1 class="section-title" id="latest">Latest Releases</h1>
+    
+    <div id="contentGrid" class="grid">
+      <!-- Loader initially displays here -->
+      <div class="loader" id="loader">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Toggle Dropdown Menu
+    const menuBtn = document.getElementById('menuToggle');
+    const dropdown = document.getElementById('dropdownMenu');
+
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('active');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && e.target !== menuBtn) {
+        dropdown.classList.remove('active');
+      }
+    });
+
+    // Fetch and Render Data
+    const contentGrid = document.getElementById('contentGrid');
+
+    async function loadData() {
+      try {
+        // In a real scenario, this fetches from the exact URL or relative path
+        // Adding a timestamp query param to prevent caching if needed: data.json?t=${Date.now()}
+        const response = await fetch('data.json?t=' + new Date().getTime(), {
+          cache: "no-store"
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+          const mainDownloadBtn = document.getElementById('mainDownloadLink');
+          if (mainDownloadBtn) {
+            mainDownloadBtn.href = data[0].link;
+          }
+        }
+        
+        renderCards(data);
+        
+      } catch (error) {
+        console.error("Could not load data.json:", error);
+        contentGrid.innerHTML = `
+          <div class="error-msg">
+            <i class="fa-solid fa-triangle-exclamation fa-2x" style="margin-bottom: 1rem;"></i>
+            <h3>Failed to load content</h3>
+            <p>Ensure that data.json exists in the repository and you are accessing this via a web server.</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderCards(items) {
+      if (!items || items.length === 0) {
+        contentGrid.innerHTML = `
+          <div class="error-msg" style="color: var(--text-muted); background: var(--card-bg); border-color: var(--border-color);">
+            <i class="fa-solid fa-box-open fa-2x" style="margin-bottom: 1rem;"></i>
+            <h3>No items found</h3>
+            <p>Add some entries to data.json to see them here.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const cardsHTML = items.map(item => {
+        // Construct the image HTML appropriately
+        const imgBlock = item.image 
+          ? `<img src="${item.image}" alt="${item.title}" class="card-img" loading="lazy">`
+          : `<div class="card-placeholder"><i class="fa-brands fa-android"></i></div>`;
+
+        // Render Version Badge if present
+        const versionBadge = item.version 
+          ? `<span class="card-version">v${item.version}</span>` 
+          : '';
+
+        return `
+          <article class="card">
+            <div class="card-img-wrapper">
+              ${imgBlock}
+            </div>
+            <div class="card-content">
+              <div class="card-header">
+                <h2 class="card-title">${item.title}</h2>
+                ${versionBadge}
+              </div>
+              <p class="card-desc">${item.description}</p>
+              <a href="${item.link}" class="btn-download" download>
+                <i class="fa-solid fa-cloud-arrow-down"></i> Download Now
+              </a>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      // Add a tiny animation delay effect for smoothness
+      contentGrid.style.opacity = '0';
+      contentGrid.innerHTML = cardsHTML;
+      
+      setTimeout(() => {
+        contentGrid.style.transition = 'opacity 0.5s ease-in-out';
+        contentGrid.style.opacity = '1';
+      }, 50);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadData);
+
+  </script>
+</body>
+</html>

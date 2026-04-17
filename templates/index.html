@@ -219,7 +219,7 @@
   <script>
     (async function loadCountdownBanners() {
       try {
-        const res = await fetch('/api/countdowns');
+        const res = await fetch('/api/countdowns?t=' + new Date().getTime());
         if (!res.ok) return;
         const countdowns = await res.json();
         const wrapper = document.getElementById('countdowns-wrapper');
@@ -288,7 +288,7 @@
   // ============================================================
   (async function initWidgets() {
     try {
-      const res = await fetch('/api/widgets');
+      const res = await fetch('/api/widgets?t=' + new Date().getTime());
       if (!res.ok) return;
       const widgets = await res.json();
       const zone = document.getElementById('widgets-zone');
@@ -794,7 +794,7 @@
     // ---- Maintenance Check ----
     async function checkMaintenance() {
       try {
-        const res = await fetch('/api/maintenance/status');
+        const res = await fetch('/api/maintenance/status?t=' + new Date().getTime());
         if (res.ok) {
           const data = await res.json();
           if (data.enabled) {
