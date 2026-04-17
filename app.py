@@ -414,6 +414,21 @@ def api_widget_vote(widget_id):
 def index():
     return render_template("index.html")
 
+@app.route("/downloads")
+def downloads():
+    return render_template("downloads.html")
+
+@app.route("/api/downloads_data")
+def api_downloads_data():
+    import json
+    try:
+        with open("data/downloads.json", "r") as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error loading downloads data: {e}")
+        return jsonify([])
+
 
 @app.route("/sitemap.xml")
 def sitemap():

@@ -292,9 +292,10 @@
     // --- Data Fetching ---
     async function loadDashboard() {
       try {
+        const ts = new Date().getTime();
         const [dashRes, keysRes] = await Promise.all([
-          fetch('/api/admin/dashboard'),
-          fetch('/api/admin/keys')
+          fetch('/api/admin/dashboard?t=' + ts),
+          fetch('/api/admin/keys?t=' + ts)
         ]);
         
         if (dashRes.status === 401 || keysRes.status === 401) {
@@ -463,7 +464,7 @@
 
     async function loadCountdowns() {
       try {
-        const res = await fetch('/api/admin/countdowns');
+        const res = await fetch('/api/admin/countdowns?t=' + new Date().getTime());
         if (res.status === 401) { window.location.href = '/admin/login'; return; }
         const countdowns = await res.json();
         renderCountdownsTable(countdowns);
@@ -755,7 +756,7 @@
     // Load all widgets
     async function loadWidgets() {
       try {
-        const res = await fetch('/api/admin/widgets');
+        const res = await fetch('/api/admin/widgets?t=' + new Date().getTime());
         if (res.status === 401) { window.location.href='/admin/login'; return; }
         renderWidgetsTable(await res.json());
       } catch (e) {
