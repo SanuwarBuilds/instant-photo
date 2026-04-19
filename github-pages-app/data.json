@@ -1,5 +1,14 @@
 [
   {
+    "id": "app_71d3566d",
+    "title": "sjod",
+    "description": "www",
+    "link": "https://res.cloudinary.com/dx3gpnczk/image/upload/v1776566402/ezyv9q7mj3s2c3tarfex.jpg",
+    "image": "https://res.cloudinary.com/dx3gpnczk/image/upload/v1776566383/gnkoczpoeo0hiqpv4qd2.jpg",
+    "category": "Apps",
+    "version": ""
+  },
+  {
     "id": "app_cricket_speed",
     "title": "Cricket Speed Tracker Pro",
     "description": "High-performance camera-based AI tracking for cricket ball speed in real-time.",
