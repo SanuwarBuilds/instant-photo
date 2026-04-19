@@ -1,14 +1,5 @@
 [
   {
-    "id": "app_9168a653",
-    "title": "photo",
-    "description": "marrieg memories",
-    "link": "https://res.cloudinary.com/dx3gpnczk/image/upload/v1776566039/dn1kabvvsiaaflfvm2t3.pdf",
-    "image": "https://res.cloudinary.com/dx3gpnczk/image/upload/v1776566009/h9er2kij6k6m6syiy9rl.jpg",
-    "category": "photo",
-    "version": ""
-  },
-  {
     "id": "app_cricket_speed",
     "title": "Cricket Speed Tracker Pro",
     "description": "High-performance camera-based AI tracking for cricket ball speed in real-time.",
