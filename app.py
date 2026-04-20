@@ -2,30 +2,27 @@ from flask import Flask, request, render_template, send_file, session, redirect,
 from PIL import Image, ImageOps
 from io import BytesIO
 from dotenv import load_dotenv
-import os
 import requests
 import uuid
 import datetime
 import utils
-
-# Force load .env from exact path to avoid any missing keys
-env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
-load_dotenv(dotenv_path=env_path, override=True)
-
+load_dotenv()
 import cloudinary
 import cloudinary.uploader
 import cloudinary.utils
+import os
 
 app = Flask(__name__)
 app.secret_key = "SANUWAR_PHOTO_SECRET"
 
-REMOVE_BG_API_KEY    = os.getenv("REMOVE_BG_API_KEY")
+
+REMOVE_BG_API_KEY = os.getenv("REMOVE_BG_API_KEY")
 CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
 
 cloudinary.config(
-    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"),
-    api_key    = os.getenv("CLOUDINARY_API_KEY"),
-    api_secret = os.getenv("CLOUDINARY_API_SECRET"),
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
 
 
@@ -320,21 +317,7 @@ def api_admin_widgets_add():
 @login_required
 def api_admin_upload():
     try:
-        import cloudinary, cloudinary.uploader
-
-        cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
-        api_key = os.getenv("CLOUDINARY_API_KEY")
-        api_secret = os.getenv("CLOUDINARY_API_SECRET")
-
-        if not cloud_name or not api_key:
-            return jsonify({"error": "Vercel setup incomplete: Cloudinary Environment Variables are missing in Vercel dashboard!"}), 500
-
-        # Always explicitly configure Cloudinary before uploading
-        cloudinary.config(
-            cloud_name=cloud_name,
-            api_key=api_key,
-            api_secret=api_secret,
-        )
+        import cloudinary.uploader
         
         # Check if JSON payload (Base64)
         if request.is_json:
@@ -355,9 +338,8 @@ def api_admin_upload():
         secure_url = upload_result.get("secure_url")
         return jsonify({"success": True, "url": secure_url})
     except Exception as e:
-        print(f"Upload Error: {e}")
+        print(f"Widget Image Upload Error: {e}")
         return jsonify({"error": "Cloudinary upload failed: " + str(e)}), 500
-
 
 @app.route("/api/admin/widgets/<widget_id>", methods=["PUT"])
 @login_required
@@ -408,25 +390,14 @@ def api_admin_widgets_reorder():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-def sync_store_apps_to_github(data_list=None):
+def sync_store_apps_to_github():
     try:
-        import os, shutil, requests, base64, json
-        
-        if data_list is not None:
-            content = json.dumps(data_list, indent=2)
-        else:
-            with open("data/downloads.json", "r") as f:
-                content = f.read()
-
-        try:
-            with open("data/downloads.json", "w") as f:
-                f.write(content)
-            shutil.copy("data/downloads.json", "github-pages-app/data.json")
-        except Exception as e:
-            print(f"Skipping Vercel local file copy: {e}")
+        import os, shutil, requests, base64
+        # Always sync to local frontend first
+        shutil.copy("data/downloads.json", "github-pages-app/data.json")
         
         # Github Sync
-        github_pat  = os.getenv("GITHUB_PAT")
+        github_pat = os.getenv("GITHUB_PAT")
         github_user = os.getenv("GITHUB_USER")
         github_repo = os.getenv("GITHUB_REPO")
         
@@ -436,36 +407,31 @@ def sync_store_apps_to_github(data_list=None):
             
         with open("data/downloads.json", "r") as f:
             content = f.read()
-        
-        encoded = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+            
+        url = f"https://api.github.com/repos/{github_user}/{github_repo}/contents/data.json"
         headers = {
             "Authorization": f"token {github_pat}",
             "Accept": "application/vnd.github.v3+json"
         }
-
-        def push_file(path):
-            url = f"https://api.github.com/repos/{github_user}/{github_repo}/contents/{path}"
-            get_res = requests.get(url, headers=headers)
-            sha = get_res.json().get("sha") if get_res.status_code == 200 else None
-            payload = {
-                "message": "Auto-sync store apps from Admin Panel",
-                "content": encoded
-            }
-            if sha:
-                payload["sha"] = sha
-            put_res = requests.put(url, headers=headers, json=payload)
-            if put_res.status_code in [200, 201]:
-                print(f"✅ Synced to GitHub: {path}")
-            else:
-                print(f"❌ Failed to sync {path}: {put_res.text[:200]}")
-
-        # Push to both locations so GitHub Pages always gets updated
-        push_file("data/downloads.json")
-        push_file("github-pages-app/data.json")
-
+        
+        # Get SHA
+        get_res = requests.get(url, headers=headers)
+        sha = get_res.json().get("sha") if get_res.status_code == 200 else None
+        
+        payload = {
+            "message": "Auto-sync store apps from Admin Panel",
+            "content": base64.b64encode(content.encode("utf-8")).decode("utf-8")
+        }
+        if sha:
+            payload["sha"] = sha
+            
+        put_res = requests.put(url, headers=headers, json=payload)
+        if put_res.status_code in [200, 201]:
+            print("Successfully synced to GitHub!")
+        else:
+            print(f"Failed to sync to GitHub: {put_res.text}")
     except Exception as e:
         print(f"Error syncing to github: {e}")
-
 
 @app.route("/api/admin/store-apps", methods=["GET", "POST"])
 @login_required
@@ -502,13 +468,10 @@ def create_store_app():
         }
         
         items.insert(0, new_app) # Add to top
-        try:
-            with open("data/downloads.json", "w") as f:
-                json.dump(items, f, indent=2)
-        except Exception as e:
-            print(f"Skipping Vercel local save: {e}")
+        with open("data/downloads.json", "w") as f:
+            json.dump(items, f, indent=2)
             
-        sync_store_apps_to_github(items)
+        sync_store_apps_to_github()
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -536,13 +499,10 @@ def update_store_app(app_id):
                     items[idx]["album_files"] = data["album_files"]
                 break
                 
-        try:
-            with open("data/downloads.json", "w") as f:
-                json.dump(items, f, indent=2)
-        except Exception as e:
-            print(f"Skipping Vercel local save: {e}")
+        with open("data/downloads.json", "w") as f:
+            json.dump(items, f, indent=2)
             
-        sync_store_apps_to_github(items)
+        sync_store_apps_to_github()
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -562,12 +522,7 @@ def delete_store_app(app_id):
 
         # Optionally destroy from Cloudinary
         try:
-            import cloudinary, cloudinary.uploader
-            cloudinary.config(
-                cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-                api_key=os.getenv("CLOUDINARY_API_KEY"),
-                api_secret=os.getenv("CLOUDINARY_API_SECRET"),
-            )
+            import cloudinary.uploader
             links_to_delete = []
             if item_to_delete.get("is_album"):
                 for af in item_to_delete.get("album_files", []):
@@ -590,13 +545,10 @@ def delete_store_app(app_id):
         # Remove from list
         items = [x for x in items if x.get("id") != app_id]
         
-        try:
-            with open("data/downloads.json", "w") as f:
-                json.dump(items, f, indent=2)
-        except Exception as e:
-            print(f"Skipping Vercel local save: {e}")
+        with open("data/downloads.json", "w") as f:
+            json.dump(items, f, indent=2)
             
-        sync_store_apps_to_github(items)
+        sync_store_apps_to_github()
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
