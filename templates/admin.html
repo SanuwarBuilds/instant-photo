@@ -1632,8 +1632,7 @@
             
             alert(`Album "${title}" published successfully!`);
             
-            // Trigger GitHub Deploy via backend endpoint
-            await fetch('/api/admin/store-apps/sync', { method: 'POST' }).catch(() => {});
+            // Reset
             
             // Reset
             pendingAlbumFiles = [];
