@@ -400,11 +400,20 @@ def api_admin_widgets_reorder():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-def sync_store_apps_to_github():
+def sync_store_apps_to_github(items=None):
     try:
-        import os, shutil, requests, base64
+        import os, shutil, requests, base64, json
         # Always sync to local frontend first
-        shutil.copy("data/downloads.json", "github-pages-app/data.json")
+        if items is not None:
+            content = json.dumps(items, indent=2)
+            if not os.environ.get("VERCEL"):
+                with open("github-pages-app/data.json", "w") as f:
+                    f.write(content)
+        else:
+            if not os.environ.get("VERCEL"):
+                shutil.copy("data/downloads.json", "github-pages-app/data.json")
+            with open("data/downloads.json", "r") as f:
+                content = f.read()
         
         # Github Sync
         github_pat = os.getenv("GITHUB_PAT")
@@ -441,7 +450,13 @@ def sync_store_apps_to_github():
         else:
             print(f"Failed to sync to GitHub: {put_res.text}")
     except Exception as e:
-        print(f"Error syncing to github: {e}")
+            print(f"Error syncing to github: {e}")
+
+@app.route("/api/admin/store-apps/sync", methods=["POST"])
+@login_required
+def api_admin_sync():
+    sync_store_apps_to_github()
+    return jsonify({"success": True})
 
 @app.route("/api/admin/store-apps", methods=["GET", "POST"])
 @login_required
@@ -478,10 +493,12 @@ def create_store_app():
         }
         
         items.insert(0, new_app) # Add to top
-        with open("data/downloads.json", "w") as f:
-            json.dump(items, f, indent=2)
+        import os
+        if not os.environ.get("VERCEL"):
+            with open("data/downloads.json", "w") as f:
+                json.dump(items, f, indent=2)
             
-        sync_store_apps_to_github()
+        sync_store_apps_to_github(items)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -509,10 +526,12 @@ def update_store_app(app_id):
                     items[idx]["album_files"] = data["album_files"]
                 break
                 
-        with open("data/downloads.json", "w") as f:
-            json.dump(items, f, indent=2)
+        import os
+        if not os.environ.get("VERCEL"):
+            with open("data/downloads.json", "w") as f:
+                json.dump(items, f, indent=2)
             
-        sync_store_apps_to_github()
+        sync_store_apps_to_github(items)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -562,10 +581,12 @@ def delete_store_app(app_id):
         # Remove from list
         items = [x for x in items if x.get("id") != app_id]
         
-        with open("data/downloads.json", "w") as f:
-            json.dump(items, f, indent=2)
+        import os
+        if not os.environ.get("VERCEL"):
+            with open("data/downloads.json", "w") as f:
+                json.dump(items, f, indent=2)
             
-        sync_store_apps_to_github()
+        sync_store_apps_to_github(items)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
