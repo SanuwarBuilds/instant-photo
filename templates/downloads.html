@@ -576,7 +576,7 @@
 
       const btn = item.is_album
         ? `<button class="btn-dl btn-dl-album" onclick="openAlbumModal('${item.id}')"><i class="fa-solid fa-folder-open"></i> View Album</button>`
-        : `<a href="${dl}" class="btn-dl" target="_blank" rel="noopener noreferrer" download><i class="fa-solid fa-cloud-arrow-down"></i> Download</a>`;
+        : `<a href="${dl}" class="btn-dl" download><i class="fa-solid fa-cloud-arrow-down"></i> Download</a>`;
 
       return `
         <article class="card">
@@ -616,7 +616,7 @@
           <div class="album-file-thumb">${thumb}</div>
           <div class="album-file-info">
             <div class="album-file-name">${f.name || 'File'}</div>
-            <a href="${link}" class="album-file-dl" target="_blank" download><i class="fa-solid fa-download"></i> Download</a>
+            <a href="${link}" class="album-file-dl" download><i class="fa-solid fa-download"></i> Download</a>
           </div>
         </div>`;
     }).join('');
