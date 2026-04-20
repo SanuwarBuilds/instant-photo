@@ -15,6 +15,28 @@ import os
 app = Flask(__name__)
 app.secret_key = "SANUWAR_PHOTO_SECRET"
 
+def get_live_downloads_data():
+    import json, os, requests, base64
+    if os.environ.get("VERCEL"):
+        github_pat = os.getenv("GITHUB_PAT")
+        github_user = os.getenv("GITHUB_USER")
+        github_repo = os.getenv("GITHUB_REPO")
+        if github_pat and github_user and github_repo:
+            try:
+                url = f"https://api.github.com/repos/{github_user}/{github_repo}/contents/data/downloads.json"
+                headers = {"Authorization": f"token {github_pat}", "Accept": "application/vnd.github.v3+json"}
+                res = requests.get(url, headers=headers)
+                if res.status_code == 200:
+                    content = res.json().get("content", "")
+                    decoded = base64.b64decode(content).decode("utf-8")
+                    return json.loads(decoded)
+            except Exception:
+                pass
+    try:
+        with open("data/downloads.json", "r") as f:
+            return json.load(f)
+    except Exception:
+        return []
 
 REMOVE_BG_API_KEY = os.getenv("REMOVE_BG_API_KEY")
 CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
@@ -424,9 +446,6 @@ def sync_store_apps_to_github(items=None):
             print("Github Sync skipped: Missing GITHUB_PAT, GITHUB_USER or GITHUB_REPO in .env")
             return
             
-        with open("data/downloads.json", "r") as f:
-            content = f.read()
-            
         url = f"https://api.github.com/repos/{github_user}/{github_repo}/contents/data/downloads.json"
         headers = {
             "Authorization": f"token {github_pat}",
@@ -464,21 +483,11 @@ def create_store_app():
     import json
     # GET — return all items
     if request.method == "GET":
-        try:
-            with open("data/downloads.json", "r") as f:
-                items = json.load(f)
-            return jsonify(items)
-        except FileNotFoundError:
-            return jsonify([])
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+        items = get_live_downloads_data()
+        return jsonify(items)
     try:
         data = request.json
-        try:
-            with open("data/downloads.json", "r") as f:
-                items = json.load(f)
-        except FileNotFoundError:
-            items = []
+        items = get_live_downloads_data()
             
         new_app = {
             "id": f"app_{uuid.uuid4().hex[:8]}",
@@ -509,8 +518,7 @@ def update_store_app(app_id):
     import json
     try:
         data = request.json
-        with open("data/downloads.json", "r") as f:
-            items = json.load(f)
+        items = get_live_downloads_data()
             
         for idx, item in enumerate(items):
             if item.get("id") == app_id:
@@ -541,8 +549,7 @@ def update_store_app(app_id):
 def delete_store_app(app_id):
     import json
     try:
-        with open("data/downloads.json", "r") as f:
-            items = json.load(f)
+        items = get_live_downloads_data()
         
         # Find the item to delete
         item_to_delete = next((x for x in items if x.get("id") == app_id), None)
@@ -633,14 +640,8 @@ def downloads():
 
 @app.route("/api/downloads_data")
 def api_downloads_data():
-    import json
-    try:
-        with open("data/downloads.json", "r") as f:
-            data = json.load(f)
-        return jsonify(data)
-    except Exception as e:
-        print(f"Error loading downloads data: {e}")
-        return jsonify([])
+    data = get_live_downloads_data()
+    return jsonify(data)
 
 
 @app.route("/sitemap.xml")
