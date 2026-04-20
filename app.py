@@ -348,7 +348,7 @@ def api_admin_upload():
                 return jsonify({"error": "No file provided in JSON"}), 400
             file_data = data["file"]
             filename = data.get("filename", "file")
-            pid = f"{uuid.uuid4().hex[:8]}_{filename}"
+            pid = filename
             upload_result = cloudinary.uploader.upload(file_data, resource_type="raw", public_id=pid)
         else:
             # Fallback to Multipart
@@ -357,7 +357,7 @@ def api_admin_upload():
             file = request.files["image"]
             if file.filename == "":
                 return jsonify({"error": "No selected file"}), 400
-            pid = f"{uuid.uuid4().hex[:8]}_{file.filename}"
+            pid = file.filename
             upload_result = cloudinary.uploader.upload(file, resource_type="raw", public_id=pid)
             
         secure_url = upload_result.get("secure_url")
