@@ -2,27 +2,29 @@ from flask import Flask, request, render_template, send_file, session, redirect,
 from PIL import Image, ImageOps
 from io import BytesIO
 from dotenv import load_dotenv
+import os
 import requests
 import uuid
 import datetime
 import utils
-load_dotenv()
+
+# Force load .env — override=True ensures values always fresh even in debug/reload
+load_dotenv(override=True)
+
 import cloudinary
 import cloudinary.uploader
 import cloudinary.utils
-import os
 
 app = Flask(__name__)
 app.secret_key = "SANUWAR_PHOTO_SECRET"
 
-
-REMOVE_BG_API_KEY = os.getenv("REMOVE_BG_API_KEY")
+REMOVE_BG_API_KEY    = os.getenv("REMOVE_BG_API_KEY")
 CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
 
 cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key    = os.getenv("CLOUDINARY_API_KEY"),
+    api_secret = os.getenv("CLOUDINARY_API_SECRET"),
 )
 
 
