@@ -347,12 +347,7 @@ def api_admin_upload():
             if "file" not in data:
                 return jsonify({"error": "No file provided in JSON"}), 400
             file_data = data["file"]
-            filename = data.get("filename", "")
-            rtype = "raw" if filename.lower().endswith((".apk", ".zip", ".rar", ".pdf")) else "auto"
-            try:
-                upload_result = cloudinary.uploader.upload(file_data, resource_type=rtype)
-            except Exception:
-                upload_result = cloudinary.uploader.upload(file_data, resource_type="raw")
+            upload_result = cloudinary.uploader.upload(file_data, resource_type="raw")
         else:
             # Fallback to Multipart
             if "image" not in request.files:
@@ -360,12 +355,7 @@ def api_admin_upload():
             file = request.files["image"]
             if file.filename == "":
                 return jsonify({"error": "No selected file"}), 400
-            rtype = "raw" if file.filename.lower().endswith((".apk", ".zip", ".rar", ".pdf")) else "auto"
-            try:
-                upload_result = cloudinary.uploader.upload(file, resource_type=rtype)
-            except Exception:
-                file.seek(0)
-                upload_result = cloudinary.uploader.upload(file, resource_type="raw")
+            upload_result = cloudinary.uploader.upload(file, resource_type="raw")
             
         secure_url = upload_result.get("secure_url")
         return jsonify({"success": True, "url": secure_url})
