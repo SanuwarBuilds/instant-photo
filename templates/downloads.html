@@ -570,6 +570,9 @@
       if (item.is_album) tags.push(`${(item.album_files||[]).length} files`);
 
       let dl = item.link || '';
+      if (dl.includes('res.cloudinary.com') && dl.includes('/upload/') && !dl.includes('fl_attachment')) {
+        dl = dl.replace('/upload/', '/upload/fl_attachment/');
+      }
 
       const btn = item.is_album
         ? `<button class="btn-dl btn-dl-album" onclick="openAlbumModal('${item.id}')"><i class="fa-solid fa-folder-open"></i> View Album</button>`
@@ -601,6 +604,9 @@
     const body = document.getElementById('albumModalBody');
     body.innerHTML = (item.album_files || []).map(f => {
       let link = f.link || '';
+      if (link.includes('res.cloudinary.com') && link.includes('/upload/') && !link.includes('fl_attachment')) {
+        link = link.replace('/upload/', '/upload/fl_attachment/');
+      }
       const isImg = /\.(jpg|jpeg|png|gif|webp|svg)/i.test(f.name || link);
       const thumb = isImg
         ? `<img src="${f.link}" alt="${f.name}" loading="lazy">`
