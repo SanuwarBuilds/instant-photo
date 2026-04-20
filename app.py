@@ -427,7 +427,7 @@ def sync_store_apps_to_github(items=None):
         with open("data/downloads.json", "r") as f:
             content = f.read()
             
-        url = f"https://api.github.com/repos/{github_user}/{github_repo}/contents/data.json"
+        url = f"https://api.github.com/repos/{github_user}/{github_repo}/contents/data/downloads.json"
         headers = {
             "Authorization": f"token {github_pat}",
             "Accept": "application/vnd.github.v3+json"
