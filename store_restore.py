@@ -1,12 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="App and File Download Hub">
-  <title>Store</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+import re
+
+css_code = """
   <style>
     :root {
       --bg-dark: #0f172a;
@@ -303,199 +297,51 @@
       .category-filters { justify-content: flex-start; }
     }
   </style>
-</head>
-<body>
+"""
 
-  <header>
-    <div class="brand">
-      <i class="fa-solid fa-store"></i>
-      Store
-    </div>
-    <div class="menu-container">
-      <button class="menu-btn" id="menuToggle" aria-label="Toggle menu">
-        <i class="fa-solid fa-ellipsis-vertical"></i>
-      </button>
-      <div class="dropdown" id="dropdownMenu">
-        <a href="#" id="mainDownloadLink" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-store" style="width: 20px;"></i> Store</a>
-        <a href="https://github.com" target="_blank"><i class="fa-brands fa-github" style="width: 20px;"></i> GitHub Repo</a>
-        <a href="#"><i class="fa-solid fa-circle-info" style="width: 20px;"></i> About</a>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    <h1 class="section-title" id="latest">Latest Releases</h1>
-    
-    <div id="categoryFilters" class="category-filters" style="display: none;"></div>
-    
-    <div id="contentGrid" class="grid">
-      <!-- Loader initially displays here -->
-      <div class="loader" id="loader">
-        <div class="spinner"></div>
-      </div>
-    </div>
-  </main>
-
-  <script>
-    // Toggle Dropdown Menu
-    const menuBtn = document.getElementById('menuToggle');
-    const dropdown = document.getElementById('dropdownMenu');
-
-    menuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dropdown.classList.toggle('active');
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!dropdown.contains(e.target) && e.target !== menuBtn) {
-        dropdown.classList.remove('active');
-      }
-    });
-
-    // Fetch and Render Data
-    const contentGrid = document.getElementById('contentGrid');
-    const categoryFilters = document.getElementById('categoryFilters');
-    let allItems = [];
-    let currentCategory = 'All';
-
-    async function loadData() {
-      try {
-        // In a real scenario, this fetches from the exact URL or relative path
-        // Adding a timestamp query param to prevent caching if needed: data.json?t=${Date.now()}
-        const response = await fetch('data.json?t=' + new Date().getTime(), {
-          cache: "no-store"
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        allItems = await response.json();
-        
-        if (allItems && allItems.length > 0) {
-          const mainDownloadBtn = document.getElementById('mainDownloadLink');
-          if (mainDownloadBtn) {
-            mainDownloadBtn.href = allItems[0].link;
-          }
-        }
-        
-        populateCategories();
-        filterData('All');
-        
-      } catch (error) {
-        console.error("Could not load data.json:", error);
-        contentGrid.innerHTML = `
-          <div class="error-msg">
-            <i class="fa-solid fa-triangle-exclamation fa-2x" style="margin-bottom: 1rem;"></i>
-            <h3>Failed to load content</h3>
-            <p>Ensure that data.json exists in the repository and you are accessing this via a web server.</p>
+modal_html = """
+  <!-- Album Viewer Modal -->
+  <div id="albumModal" class="album-modal-overlay">
+      <div class="album-modal-content">
+          <div class="album-modal-header">
+              <h3 id="albumModalTitle" class="text-lg font-bold">Album View</h3>
+              <button onclick="closeAlbumModal()" class="album-close-btn">&times;</button>
           </div>
-        `;
-      }
-    }
-
-    function renderCards(items) {
-      if (!items || items.length === 0) {
-        contentGrid.innerHTML = `
-          <div class="error-msg" style="color: var(--text-muted); background: var(--card-bg); border-color: var(--border-color);">
-            <i class="fa-solid fa-box-open fa-2x" style="margin-bottom: 1rem;"></i>
-            <h3>No items found</h3>
-            <p>Add some entries to data.json to see them here.</p>
+          <div id="albumModalBody" class="album-modal-body">
+              <!-- Dynamically populated -->
           </div>
-        `;
-        return;
-      }
+      </div>
+  </div>
+"""
 
-      const cardsHTML = items.map(item => {
-        // Construct the image HTML appropriately
-        const imgBlock = item.image 
-          ? `<img src="${item.image}" alt="${item.title}" class="card-img" loading="lazy">`
-          : `<div class="card-placeholder"><i class="fa-brands fa-android"></i></div>`;
-
-        // Render Version Badge if present
-        const versionBadge = item.version 
-          ? `<span class="card-version">v${item.version}</span>` 
-          : '';
-
+btn_logic = """
         let buttonHTML = '';
-        let downloadLink = item.link || '#';
-        if (downloadLink.includes('res.cloudinary.com') && downloadLink.includes('/upload/') && !downloadLink.includes('fl_attachment')) {
-            downloadLink = downloadLink.replace('/upload/', '/upload/fl_attachment/');
-        }
-
         if (item.is_album) {
             buttonHTML = `<button onclick="openAlbumModal('${item.id}')" class="btn-download" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); width: 100%; border: none; cursor: pointer;">
               <i class="fa-solid fa-folder-open"></i> View Album (${item.album_files ? item.album_files.length : 0} files)
             </button>`;
         } else {
-            buttonHTML = `<a href="${downloadLink}" class="btn-download" target="_blank" rel="noopener noreferrer" download>
+            buttonHTML = `<a href="${downloadLink}" class="btn-download" target="_blank" rel="noopener noreferrer">
               <i class="fa-solid fa-cloud-arrow-down"></i> Download Now
             </a>`;
         }
+"""
 
-        return `
-          <article class="card">
-            <div class="card-img-wrapper">
-              ${imgBlock}
-            </div>
-            <div class="card-content">
-              <div class="card-header">
-                <h2 class="card-title">${item.title}</h2>
-                <div style="display:flex;gap:6px;align-items:center;">
-                  ${item.category ? `<span class="card-version" style="background:rgba(168,85,247,0.2);color:#d8b4fe;">${item.category}</span>` : ''}
-                  ${versionBadge}
-                </div>
-              </div>
-              <p class="card-desc">${item.description}</p>
-              ${buttonHTML}
-            </div>
-          </article>
-        `;
-      }).join('');
+def process_file(filepath):
+    with open(filepath, 'r') as f:
+        content = f.read()
 
-      // Add a tiny animation delay effect for smoothness
-      contentGrid.style.opacity = '0';
-      contentGrid.innerHTML = cardsHTML;
-      
-      setTimeout(() => {
-        contentGrid.style.transition = 'opacity 0.5s ease-in-out';
-        contentGrid.style.opacity = '1';
-      }, 50);
-    }
+    # 1. Replace Styles
+    if '<style>' in content and '</style>' in content:
+        content = re.sub(r'<style>.*?</style>', css_code.strip(), content, flags=re.DOTALL)
 
-    function populateCategories() {
-      if (!allItems || allItems.length === 0) return;
-      
-      const categories = ['All', ...new Set(allItems.map(item => item.category || 'Apps').filter(Boolean))];
-      
-      if (categories.length > 1) {
-        categoryFilters.innerHTML = categories.map(cat => 
-          `<button class="filter-btn ${cat === currentCategory ? 'active' : ''}" onclick="filterData('${cat}')">${cat}</button>`
-        ).join('');
-        categoryFilters.style.display = 'flex';
-      }
-    }
-
-    window.filterData = function(category) {
-      currentCategory = category;
-      
-      // Update active btn
-      const btns = categoryFilters.querySelectorAll('.filter-btn');
-      btns.forEach(btn => {
-        if(btn.textContent === category) btn.classList.add('active');
-        else btn.classList.remove('active');
-      });
-
-      const filtered = category === 'All' ? allItems : allItems.filter(item => (item.category || 'Apps') === category);
-      renderCards(filtered);
-    };
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', loadData);
-
-  
-    window.openAlbumModal = function(appId) {
+    # 2. Add Modal HTML before </body>
+    if 'id="albumModal"' not in content:
+        content = content.replace("</body>", modal_html + "\n</body>")
+        
+    # 3. Add Album Logic JS
+    album_js = """
+    function openAlbumModal(appId) {
         const item = allItems.find(x => x.id === appId);
         if (!item || !item.is_album) return;
         
@@ -524,24 +370,36 @@
         document.getElementById('albumModal').classList.add('active');
     }
     
-    window.closeAlbumModal = function() {
+    function closeAlbumModal() {
         document.getElementById('albumModal').classList.remove('active');
     }
-    
-  </script>
+    """
+    if "function openAlbumModal" not in content:
+        content = content.replace("</script>", album_js + "\n  </script>")
 
-  <!-- Album Viewer Modal -->
-  <div id="albumModal" class="album-modal-overlay">
-      <div class="album-modal-content">
-          <div class="album-modal-header">
-              <h3 id="albumModalTitle" class="text-lg font-bold">Album View</h3>
-              <button onclick="closeAlbumModal()" class="album-close-btn">&times;</button>
-          </div>
-          <div id="albumModalBody" class="album-modal-body">
-              <!-- Dynamically populated -->
-          </div>
-      </div>
-  </div>
+    # 4. Inject buttonHTML conditional safely
+    # Check if we already injected btn_logic
+    if "let buttonHTML = '';" not in content:
+        # Find the render loop `const cardsHTML = items.map(item => {`
+        # Insert `btn_logic` before `return \``
+        content = re.sub(
+            r"(const versionBadge.*?'';)",
+            r"\1\n" + btn_logic,
+            content,
+            flags=re.DOTALL
+        )
+        # Now replace the actual anchor link inside the return string with `${buttonHTML}`
+        content = re.sub(
+            r'<a href="\$\{downloadLink\}".*?Download Now\s*</a>',
+            r'${buttonHTML}',
+            content,
+            flags=re.DOTALL
+        )
 
-</body>
-</html>
+    with open(filepath, 'w') as f:
+        f.write(content)
+        
+    print(f"Refactored {filepath}")
+
+process_file('/Users/sanuwarhussain/Desktop/Work/instatnt photo source code/instant-photo/github-pages-app/index.html')
+process_file('/Users/sanuwarhussain/Desktop/Work/instatnt photo source code/instant-photo/templates/downloads.html')

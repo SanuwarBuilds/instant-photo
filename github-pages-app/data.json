@@ -1,76 +1,33 @@
 [
   {
-    "id": "app_afef70fd",
-    "title": "nnnnn",
-    "description": "",
-    "link": "https://res.cloudinary.com/dx3gpnczk/video/upload/v1776568765/h5uhehf2gspoak62e9m2.mp3",
-    "image": "https://res.cloudinary.com/dx3gpnczk/image/upload/v1776568749/tcufartjpwlqkz8ocyud.jpg",
-    "category": "audio",
-    "version": "",
-    "is_album": false,
-    "album_files": []
-  },
-  {
-    "id": "app_1bbcb459",
-    "title": "Gandus",
-    "description": "Album containing 3 files.",
-    "link": "#",
-    "image": "https://res.cloudinary.com/dx3gpnczk/image/upload/v1776568335/nfz8y2cwq5yyrfwi2grh.jpg",
-    "category": "Album",
-    "version": "",
-    "is_album": true,
-    "album_files": [
-      {
-        "id": "bulk_1776568334158_0",
-        "name": "CamScanner 24-03-26 08.35_2.JPG",
-        "url": "https://res.cloudinary.com/dx3gpnczk/image/upload/v1776568335/nfz8y2cwq5yyrfwi2grh.jpg",
-        "type": "image/jpeg"
-      },
-      {
-        "id": "bulk_1776568338317_0",
-        "name": "Passport Size Photograph.jpg",
-        "url": "https://res.cloudinary.com/dx3gpnczk/image/upload/v1776568339/wn0r6zcw02khzodx7qae.jpg",
-        "type": "image/jpeg"
-      },
-      {
-        "id": "bulk_1776568341703_0",
-        "name": "83107a70-d7c1-40e9-b9e4-fa54e71c188d.jpg",
-        "url": "https://res.cloudinary.com/dx3gpnczk/image/upload/v1776568343/dfvbunnjf4tl8a0tq8gf.jpg",
-        "type": "image/jpeg"
-      }
-    ]
-  },
-  {
-    "id": "app_cricket_speed",
     "title": "Cricket Speed Tracker Pro",
     "description": "High-performance camera-based AI tracking for cricket ball speed in real-time.",
     "link": "https://github.com/SanuwarBuilds/Download-file-repo/raw/refs/heads/main/CricZ_v5.0_kill_enc___40_1__41_.apk",
     "image": "https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=600&auto=format&fit=crop",
     "category": "Apps",
-    "version": "2.1.0",
-    "is_album": false,
-    "album_files": []
+    "version": "2.1.0"
   },
   {
-    "id": "app_hand_tracking_1770_0",
     "title": "Neon Hand-Tracking Hub",
     "description": "Minimalist dual-hand tracking application with real-time analytical HUD metrics.",
     "link": "https://github.com/username/repo/raw/main/neon-tracking.apk",
     "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600&auto=format&fit=crop",
     "category": "Apps",
-    "version": "1.0.5",
-    "is_album": false,
-    "album_files": []
+    "version": "1.0.5"
   },
   {
-    "id": "app_cricket_17880_0",
     "title": "cricket tv",
     "description": "watch unlimited cricket for free.",
     "link": "https://github.com/SanuwarBuilds/Download-file-repo/raw/refs/heads/main/CricZ_v5.0_kill_enc___40_1__41_.apk",
     "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600&auto=format&fit=crop",
     "category": "Apps",
-    "version": "1.0.5",
-    "is_album": false,
-    "album_files": []
+    "version": "1.0.5"
+  },
   {
+    "title": "Kuku tv premium",
+    "description": "watch unlimited cricket for free.",
+    "link": "https://github.com/SanuwarBuilds/Download-file-repo/raw/refs/heads/main/CricZ_v5.0_kill_enc___40_1__41_.apk",
+    "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600&auto=format&fit=crop",
+    "version": "1.0.5"
+  }
 ]

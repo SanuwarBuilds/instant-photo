@@ -17,8 +17,23 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                   </svg>
                 </div>
-                <h1 class="text-3xl font-bold text-white mb-4">Under Maintenance</h1>
-                <p class="text-gray-400 text-lg">The server is currently down for maintenance. We will be back shortly.</p>
+                                <h1 class="text-3xl lg:text-4xl font-bold text-white mb-4 tracking-tight">System Updating</h1>
+                <p class="text-gray-400 text-lg sm:text-xl max-w-md mx-auto mb-8 leading-relaxed">We're currently making things better. The application will be back online shortly.</p>
+                
+                <div class="bg-gray-800/60 border border-gray-700 backdrop-blur-md rounded-2xl p-6 shadow-2xl max-w-sm mx-auto transition-transform hover:scale-105 duration-300">
+                  <div class="flex items-center gap-4 mb-4">
+                     <div class="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400 text-xl font-bold border border-blue-500/30">
+                       <i class="fa-solid fa-user-tie"></i>
+                     </div>
+                     <div class="text-left">
+                       <p class="text-xs text-blue-400 font-semibold uppercase tracking-wider">Contact Administration</p>
+                       <p class="text-white font-bold text-lg">Sanuwar Hussain</p>
+                     </div>
+                  </div>
+                  <a href="mailto:sanuwarhussin88975@gmail.com" class="w-full bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors border border-gray-600 font-medium text-sm">
+                    <i class="fa-solid fa-envelope text-blue-400"></i> sanuwarhussin88975@gmail.com
+                  </a>
+                </div>
               </div>
             `;
             // Add basic pulse animation dynamically if not present

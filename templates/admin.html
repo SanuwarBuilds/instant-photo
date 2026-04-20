@@ -3,17 +3,190 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Admin Dashboard</title>
+  <title>Admin Dashboard — Instant Photo</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
-    .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-    .neon-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
-    
-    /* Toggle Switch */
-    .toggle-checkbox:checked { right: 0; border-color: #3b82f6; }
-    .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f0f2f8;
+      background-image: radial-gradient(circle at 0% 0%, rgba(99,102,241,0.07) 0%, transparent 40%),
+                        radial-gradient(circle at 100% 100%, rgba(168,85,247,0.06) 0%, transparent 40%);
+      color: #0f172a;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* Card base */
+    .card {
+      background: white;
+      border: 1px solid #e8eaf0;
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .card-header {
+      padding: 1.1rem 1.25rem;
+      border-bottom: 1px solid #f1f3f7;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fafbfc;
+      border-radius: 16px 16px 0 0;
+    }
+    .card-header h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Stat cards */
+    .stat-card {
+      background: white;
+      border: 1px solid #e8eaf0;
+      border-radius: 14px;
+      padding: 1.1rem 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: box-shadow 0.2s;
+    }
+    .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .stat-label { font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.3rem; }
+    .stat-value { font-size: 1.65rem; font-weight: 800; color: #0f172a; line-height: 1; }
+
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.55rem 1.1rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(99,102,241,0.4); }
+    .btn-primary:active { transform: scale(0.97); }
+
+    .btn-danger { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; border-radius: 8px; padding: 0.4rem 0.8rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .btn-danger:hover { background: #fecdd3; }
+    .btn-ghost { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.4rem 0.8rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .btn-ghost:hover { background: #e2e8f0; }
+    .btn-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.4rem 0.8rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .btn-blue:hover { background: #dbeafe; }
+    .btn-green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.4rem 0.8rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .btn-green:hover { background: #dcfce7; }
+
+    /* Badge */
+    .badge { display: inline-flex; align-items: center; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; letter-spacing: 0.3px; text-transform: uppercase; }
+    .badge-active  { background: #dcfce7; color: #15803d; }
+    .badge-failed  { background: #fee2e2; color: #dc2626; }
+    .badge-inactive { background: #f1f5f9; color: #64748b; }
+    .badge-on  { background: #dbeafe; color: #1d4ed8; }
+    .badge-off { background: #f1f5f9; color: #94a3b8; }
+
+    /* Toggle */
+    .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; }
+    .toggle { position: relative; width: 42px; height: 24px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #e2e8f0; border-radius: 999px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: white; border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle input:checked + .toggle-slider { background: #6366f1; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    /* Table rows */
+    .table-row {
+      display: grid;
+      align-items: center;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid #f8fafc;
+      transition: background 0.15s;
+      gap: 0.75rem;
+    }
+    .table-row:hover { background: #f8fafc; }
+    .table-row:last-child { border-bottom: none; }
+
+    /* Section titles */
+    .section-icon {
+      width: 32px; height: 32px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; flex-shrink: 0;
+    }
+
+    /* Navbar */
+    nav.admin-nav {
+      background: white;
+      border-bottom: 1px solid #e8eaf0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-weight: 800; font-size: 1rem; color: #0f172a;
+    }
+    .nav-brand-icon {
+      width: 32px; height: 32px; border-radius: 9px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 0.85rem;
+    }
+    .nav-badge {
+      background: #f0f0ff; color: #6366f1; border: 1px solid #c7d2fe;
+      font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    }
+    .nav-logout {
+      background: #fee2e2; color: #dc2626; border: 1px solid #fecaca;
+      font-size: 0.78rem; font-weight: 600; padding: 6px 14px; border-radius: 8px;
+      text-decoration: none; transition: background 0.15s; display: flex; align-items: center; gap: 0.3rem;
+    }
+    .nav-logout:hover { background: #fecaca; }
+
+    /* Section header utility */
+    .sec-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem; flex-wrap: wrap; gap: 0.6rem;
+    }
+    .sec-hd-left { display: flex; align-items: center; gap: 0.65rem; }
+    .sec-title { font-size: 0.95rem; font-weight: 700; color: #0f172a; }
+    .sec-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 1px; }
+
+    /* Mobile optimizations */
+    @media (max-width: 640px) {
+      .nav-badge { display: none; }
+      .stat-value { font-size: 1.4rem; }
+    }
+
+    /* Toggle switch (legacy compat) */
+    .toggle-checkbox:checked { right: 0; border-color: #6366f1; }
+    .toggle-checkbox:checked + .toggle-label { background-color: #6366f1; }
     .toggle-checkbox:checked + .toggle-label:after { transform: translateX(100%); border-color: white; }
     .toggle-label { transition: all .3s ease; }
     .toggle-label:after {
@@ -21,62 +194,102 @@
       width: 20px; height: 20px; background-color: white; border-radius: 50%;
       transition: all .3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
+
+    /* Form inputs */
+    .form-input {
+      width: 100%; background: white; border: 1.5px solid #e2e8f0;
+      border-radius: 10px; padding: 0.6rem 0.85rem;
+      font-size: 0.86rem; color: #0f172a; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: inherit;
+    }
+    .form-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .form-label { display: block; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem; }
+    .form-textarea { resize: none; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.5);
+      backdrop-filter: blur(6px); z-index: 200;
+      display: flex; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-box {
+      background: white; border-radius: 18px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+      width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto;
+      position: relative;
+    }
+    .modal-top {
+      padding: 1.25rem 1.5rem 0;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: white; z-index: 1; border-bottom: 1px solid #f1f3f7; padding-bottom: 0.75rem; margin-bottom: 0;
+    }
+    .modal-body { padding: 1.25rem 1.5rem 1.5rem; }
+    .modal-title { font-size: 1rem; font-weight: 800; color: #0f172a; }
+    .modal-close {
+      width: 30px; height: 30px; border-radius: 50%; background: #f1f5f9; border: none;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; font-size: 1rem;
+      transition: background 0.15s;
+    }
+    .modal-close:hover { background: #fee2e2; color: #dc2626; }
   </style>
 </head>
-<body class="pb-20">
+<body class="pb-24">
 
   <!-- Navbar -->
-  <nav class="sticky top-0 z-50 glass-card border-b border-gray-800">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center border border-blue-500/50">
-            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-          </div>
-          <span class="font-bold text-lg tracking-wide">Admin Panel</span>
-        </div>
-        <a href="/admin/logout" class="text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors">Logout</a>
+  <nav class="admin-nav">
+    <div class="nav-inner">
+      <div class="nav-brand">
+        <div class="nav-brand-icon"><i class="fa-solid fa-bolt"></i></div>
+        Admin Panel
+        <span class="nav-badge">Pro</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <a href="/downloads" target="_blank" style="font-size:0.78rem;font-weight:600;color:#6366f1;text-decoration:none;display:flex;align-items:center;gap:0.3rem;">
+          <i class="fa-solid fa-store"></i><span class="hidden sm:inline">View Store</span>
+        </a>
+        <a href="/admin/logout" class="nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
       </div>
     </div>
   </nav>
 
-  <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-    
+  <main class="max-w-5xl mx-auto px-4 sm:px-5 py-6 space-y-5">
+
     <!-- Stats Row -->
-    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
-      <div class="glass-card p-5 rounded-2xl flex flex-col justify-center">
-        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total API Keys</p>
-        <p id="stat-total-keys" class="text-3xl font-bold text-white neon-text">-</p>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-key" style="color:#6366f1;margin-right:4px;"></i> API Keys</div>
+        <div class="stat-value" id="stat-total-keys">–</div>
       </div>
-      <div class="glass-card p-5 rounded-2xl flex flex-col justify-center">
-        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Active Key</p>
-        <p id="stat-active-key" class="text-lg font-bold text-green-400 truncate">-</p>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:4px;"></i> Active Key</div>
+        <div id="stat-active-key" style="font-size:0.8rem;font-weight:700;color:#16a34a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px;">–</div>
       </div>
-      <div class="glass-card p-5 rounded-2xl col-span-2 lg:col-span-1 flex items-center justify-between">
+      <div class="stat-card col-span-2 sm:col-span-1" style="display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Maintenance</p>
-          <p id="stat-maintenance" class="text-sm font-medium text-gray-300">Status: Loading...</p>
+          <div class="stat-label"><i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;margin-right:4px;"></i> Maintenance</div>
+          <div id="stat-maintenance" style="font-size:0.8rem;font-weight:700;color:#64748b;margin-top:4px;">Loading...</div>
         </div>
-        <div class="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in">
-          <input type="checkbox" name="toggle" id="maintenanceToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 opacity-0"/>
-          <label for="maintenanceToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
-        </div>
+        <label class="toggle" title="Toggle Maintenance Mode">
+          <input type="checkbox" id="maintenanceToggle" class="toggle-checkbox">
+          <span class="toggle-slider"></span>
+        </label>
       </div>
     </div>
 
     <!-- API Keys Section -->
-    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
-      <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/40">
+    <div class="glass-card bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden shadow-2xl">
+      <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/40">
         <h3 class="text-lg font-bold flex items-center gap-2">
           <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
           API Management
         </h3>
-        <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg hover:shadow-blue-500/20">
+        <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg hover:shadow-blue-500/20">
           + Add Key
         </button>
       </div>
       
-      <div class="hidden md:grid grid-cols-12 gap-4 px-5 py-4 bg-gray-800/50 text-gray-400 uppercase text-xs font-semibold border-b border-gray-800">
+      <div class="hidden md:grid grid-cols-12 gap-4 px-5 py-4 bg-white/50 text-slate-500 uppercase text-xs font-semibold border-b border-slate-200">
         <div class="col-span-3">Label / Service</div>
         <div class="col-span-4">Key (Masked)</div>
         <div class="col-span-1 text-center">Usage</div>
@@ -89,34 +302,171 @@
       </div>
     </div>
 
+    
+    <!-- 🛒 Store Content Management -->
+    <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 mt-8">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <div class="flex items-center gap-3 mb-1">
+            <i class="fa-solid fa-store text-xl text-blue-500"></i>
+            <h2 class="text-xl font-bold text-slate-900">Store Content Repository</h2>
+          </div>
+          <p class="text-sm text-slate-500">Manage apps, media, and APKs synced with GitHub</p>
+        </div>
+        <button onclick="openAddAppModal()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg whitespace-nowrap">
+          + Add New App
+        </button>
+      </div>
+
+      <div class="w-full overflow-x-auto border-b border-t border-slate-200">
+        <div id="appsTableBody" class="divide-y divide-slate-200 flex flex-col min-w-[800px]">
+          <div class="px-5 py-8 text-center text-slate-400">Loading store apps...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Store App Modal -->
+    <div id="addAppModal" class="fixed inset-0 z-[200] hidden">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAddAppModal()"></div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md px-4" style="max-height: 90vh; overflow-y: auto;">
+        <div class="glass-card bg-white border border-slate-200 shadow-sm p-6 rounded-2xl shadow-2xl relative">
+          <button onclick="closeAddAppModal()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-900 text-2xl z-10">&times;</button>
+          <h3 class="text-xl font-bold mb-4">Add Store Media/App</h3>
+          
+          <form id="addAppForm" class="space-y-4" onsubmit="submitAddApp(event)">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Title</label>
+              <input type="text" id="appTitle" required class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Category</label>
+                <input type="text" id="appCategory" placeholder="Apps, Audio..." required class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Version (Opt)</label>
+                <input type="text" id="appVersion" placeholder="1.0" class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Thumbnail Cover</label>
+              <!-- Preview -->
+              <div id="thumbPreviewBox" class="hidden mb-2 relative w-full h-32 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+                <img id="thumbPreviewImg" src="" class="w-full h-full object-cover">
+                <button type="button" onclick="clearThumbPreview()" class="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors">&times;</button>
+              </div>
+              <!-- Upload button -->
+              <div class="flex gap-2 items-center">
+                <label for="thumbFileInput" class="cursor-pointer flex items-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-600 text-xs font-semibold px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
+                  <i class="fa-solid fa-image"></i> Upload Photo
+                  <input type="file" id="thumbFileInput" accept="image/*" class="hidden" onchange="handleThumbUpload(this)">
+                </label>
+                <span class="text-xs text-slate-400">or paste URL:</span>
+                <input type="url" id="appImage" placeholder="https://..." class="flex-1 bg-white border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500" oninput="previewThumbUrl(this.value)">
+              </div>
+              <p id="thumbUploadStatus" class="text-xs text-blue-500 mt-1 hidden">Uploading thumbnail...</p>
+            </div>
+
+            <div class="border border-blue-200 bg-blue-50 rounded-xl p-4 mt-2">
+                <label class="block text-xs font-bold text-blue-600 uppercase mb-2">Primary Download File</label>
+                
+                <div class="space-y-3">
+                  <div>
+                    <p class="text-xs text-slate-600 mb-1">Option 1: Upload (Images, Audio, Zips < 10MB)</p>
+                    <input type="file" id="appFile" class="text-sm border border-slate-200 bg-white w-full rounded p-1">
+                  </div>
+                  
+                  <div class="flex items-center gap-2">
+                    <div class="h-px bg-blue-200 flex-grow"></div>
+                    <span class="text-xs text-blue-400 font-bold">OR</span>
+                    <div class="h-px bg-blue-200 flex-grow"></div>
+                  </div>
+                  
+                  <div>
+                    <p class="text-xs text-slate-600 mb-1">Option 2: Direct Raw Link (APKs / Large Files)</p>
+                    <input type="url" id="appRawLink" placeholder="https://github.com/.../raw/..." class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+                  </div>
+                </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Description</label>
+              <textarea id="appDesc" rows="2" class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+            </div>
+            
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 font-bold text-white py-3 rounded-xl transition-all shadow-lg active:scale-95">
+              Publish File
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+
     <!-- ⏱️ Countdown Management Section -->
-    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
-      <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/40">
+    <div class="glass-card bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden shadow-2xl">
+      <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/40">
         <h3 class="text-lg font-bold flex items-center gap-2">
           <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           Countdown Banners
         </h3>
-        <button onclick="openAddCountdownModal()" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg hover:shadow-purple-500/20">
+        <button onclick="openAddCountdownModal()" class="bg-purple-600 hover:bg-purple-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg hover:shadow-purple-500/20">
           + Add Countdown
         </button>
       </div>
-      <div id="countdownsTableBody" class="divide-y divide-gray-800 flex flex-col">
+      <div class="w-full overflow-x-auto border-b border-t border-slate-200"><div id="countdownsTableBody" class="divide-y divide-gray-800 flex flex-col">
         <div class="px-5 py-8 text-center text-gray-500">Loading countdowns...</div>
       </div>
     </div>
 
+    
+      <!-- Album Builder / Bulk Uploader -->
+      <div class="glass-card rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-8 mb-8">
+        <div class="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center flex-wrap gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Bulk Album Builder</h2>
+            <p class="text-sm text-slate-500 mt-1">Drag and drop multiple photos to create a grouped album in one click.</p>
+          </div>
+          <div class="flex gap-2 w-full sm:w-auto">
+            <input type="text" id="albumTitleInput" placeholder="Album Title (e.g. Wedding Event)" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm w-full sm:w-64 focus:ring-2 focus:ring-blue-500">
+            <button onclick="publishAlbum()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg whitespace-nowrap">Publish Album</button>
+          </div>
+        </div>
+        <div class="p-6 space-y-4">
+          <div id="dragDropArea" class="border-2 border-dashed border-blue-300 bg-blue-50 rounded-xl p-8 text-center cursor-pointer hover:bg-blue-100 transition-colors">
+            <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-500 mb-2"></i>
+            <p class="text-slate-600 font-medium">Drag & Drop files here or click to browse</p>
+            <input type="file" id="bulkFileInput" multiple class="hidden" accept="image/*,.zip,.apk">
+          </div>
+          
+          <div id="bulkUploadList" class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+            <!-- Files appear here -->
+          </div>
+          
+          <div id="bulkUploadProgress" class="hidden">
+             <div class="w-full bg-slate-200 rounded-full h-2 mt-4">
+               <div id="bulkProgressBar" class="bg-blue-500 h-2 rounded-full" style="width: 0%"></div>
+             </div>
+             <p id="bulkProgressText" class="text-xs text-slate-500 text-center mt-1">Uploading 0/0 files...</p>
+          </div>
+        </div>
+      </div>
+
+
     <!-- 🏠 Home Screen Builder -->
-    <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
-      <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/40">
+    <div class="glass-card bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden shadow-2xl">
+      <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/40">
         <h3 class="text-lg font-bold flex items-center gap-2">
           <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
           Home Screen Builder
         </h3>
-        <button onclick="openAddWidgetModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg">
+        <button onclick="openAddWidgetModal()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-900 text-sm font-medium px-4 py-2 rounded-lg transition-all shadow-lg">
           + Add Widget
         </button>
       </div>
-      <div class="px-5 py-2 bg-gray-900/20 text-xs text-gray-500 border-b border-gray-800">
+      <div class="px-5 py-2 bg-slate-50/20 text-xs text-gray-500 border-b border-slate-200">
         10 widget types available • All controlled from here • Drag order using ↑↓ buttons
       </div>
       <div id="widgetsTableBody" class="divide-y divide-gray-800 flex flex-col">
@@ -130,17 +480,17 @@
   <div id="addWidgetModal" class="fixed inset-0 z-[200] hidden">
     <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeAddWidgetModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-3" style="max-height:90vh;overflow-y:auto;">
-      <div class="glass-card p-6 rounded-2xl shadow-2xl relative">
-        <button onclick="closeAddWidgetModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl z-10">&times;</button>
+      <div class="glass-card bg-white border border-slate-200 shadow-sm p-6 rounded-2xl shadow-2xl relative">
+        <button onclick="closeAddWidgetModal()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-900 text-2xl z-10">&times;</button>
         <h3 class="text-xl font-bold mb-1">Add Widget</h3>
         <p class="text-xs text-gray-500 mb-4">Choose type and fill in the details</p>
 
         <form id="addWidgetForm" class="space-y-4" onsubmit="submitAddWidget(event)">
           <!-- Type Selector -->
           <div>
-            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Widget Type</label>
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Widget Type</label>
             <select id="newWidgetType" onchange="updateWidgetFields('new')"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
               <option value="notice">📢 Notice / Alert</option>
               <option value="poll">🗳️ Poll (with vote count %)</option>
               <option value="winner">🏆 Winner Celebration (Fireworks)</option>
@@ -156,13 +506,13 @@
 
           <div class="flex items-center gap-3">
             <input type="checkbox" id="newWidgetEnabled" checked class="w-4 h-4 accent-emerald-500">
-            <label for="newWidgetEnabled" class="text-sm text-gray-300">Show on home screen</label>
+            <label for="newWidgetEnabled" class="text-sm text-slate-600">Show on home screen</label>
           </div>
 
           <!-- Dynamic Fields -->
           <div id="widgetFields-new"></div>
 
-          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-3 rounded-xl transition-all active:scale-95">
+          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-slate-900 py-3 rounded-xl transition-all active:scale-95">
             Save Widget
           </button>
         </form>
@@ -174,18 +524,18 @@
   <div id="editWidgetModal" class="fixed inset-0 z-[200] hidden">
     <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeEditWidgetModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-3" style="max-height:90vh;overflow-y:auto;">
-      <div class="glass-card p-6 rounded-2xl shadow-2xl relative">
-        <button onclick="closeEditWidgetModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl z-10">&times;</button>
+      <div class="glass-card bg-white border border-slate-200 shadow-sm p-6 rounded-2xl shadow-2xl relative">
+        <button onclick="closeEditWidgetModal()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-900 text-2xl z-10">&times;</button>
         <h3 class="text-xl font-bold mb-4">Edit Widget</h3>
         <input type="hidden" id="editWidgetId">
         <input type="hidden" id="editWidgetType">
         <form id="editWidgetForm" class="space-y-4" onsubmit="submitEditWidget(event)">
           <div class="flex items-center gap-3">
             <input type="checkbox" id="editWidgetEnabled" class="w-4 h-4 accent-emerald-500">
-            <label for="editWidgetEnabled" class="text-sm text-gray-300">Show on home screen</label>
+            <label for="editWidgetEnabled" class="text-sm text-slate-600">Show on home screen</label>
           </div>
           <div id="widgetFields-edit"></div>
-          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-white py-3 rounded-xl transition-all active:scale-95">
+          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-slate-900 py-3 rounded-xl transition-all active:scale-95">
             Update Widget
           </button>
         </form>
@@ -198,26 +548,26 @@
   <div id="addModal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAddModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm px-4">
-      <div class="glass-card p-6 rounded-2xl shadow-2xl relative">
-        <button onclick="closeAddModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">&times;</button>
+      <div class="glass-card bg-white border border-slate-200 shadow-sm p-6 rounded-2xl shadow-2xl relative">
+        <button onclick="closeAddModal()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-900">&times;</button>
         <h3 class="text-xl font-bold mb-5">Add New API Key</h3>
         
         <form id="addKeyForm" class="space-y-4">
           <div>
-            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Service</label>
-            <select id="keyService" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Service</label>
+            <select id="keyService" class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               <option value="remove_bg">Remove.bg</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Label</label>
-            <input type="text" id="keyLabel" placeholder="e.g. Primary Key" required class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Label</label>
+            <input type="text" id="keyLabel" placeholder="e.g. Primary Key" required class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">API Key</label>
-            <input type="text" id="keyValue" placeholder="Enter full key" required class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder-gray-600">
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">API Key</label>
+            <input type="text" id="keyValue" placeholder="Enter full key" required class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder-gray-600">
           </div>
-          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 font-bold text-white py-3 rounded-xl transition-all shadow-lg active:scale-95 mt-2">
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 font-bold text-slate-900 py-3 rounded-xl transition-all shadow-lg active:scale-95 mt-2">
             Save Key
           </button>
         </form>
@@ -229,26 +579,26 @@
   <div id="addCountdownModal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAddCountdownModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm px-4">
-      <div class="glass-card p-6 rounded-2xl shadow-2xl relative">
-        <button onclick="closeAddCountdownModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+      <div class="glass-card bg-white border border-slate-200 shadow-sm p-6 rounded-2xl shadow-2xl relative">
+        <button onclick="closeAddCountdownModal()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-900 text-2xl">&times;</button>
         <h3 class="text-xl font-bold mb-1">Add Countdown</h3>
         <p class="text-xs text-gray-500 mb-5">Native countdown timer — no external service needed</p>
         <form id="addCountdownForm" class="space-y-4">
           <div>
-            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Title</label>
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Title</label>
             <input type="text" id="cdTitle" placeholder="e.g. Assam Election Result 2026" required
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+              class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Target Date &amp; Time</label>
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Target Date &amp; Time</label>
             <input type="datetime-local" id="cdTargetDate" required
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+              class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
           </div>
           <div class="flex items-center gap-3">
             <input type="checkbox" id="cdEnabled" checked class="w-4 h-4 accent-purple-500 cursor-pointer">
-            <label for="cdEnabled" class="text-sm text-gray-300 cursor-pointer">Show on home screen</label>
+            <label for="cdEnabled" class="text-sm text-slate-600 cursor-pointer">Show on home screen</label>
           </div>
-          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 font-bold text-white py-3 rounded-xl transition-all shadow-lg active:scale-95 mt-2">
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 font-bold text-slate-900 py-3 rounded-xl transition-all shadow-lg active:scale-95 mt-2">
             Save Countdown
           </button>
         </form>
@@ -260,26 +610,26 @@
   <div id="editCountdownModal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeEditCountdownModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm px-4">
-      <div class="glass-card p-6 rounded-2xl shadow-2xl relative">
-        <button onclick="closeEditCountdownModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+      <div class="glass-card bg-white border border-slate-200 shadow-sm p-6 rounded-2xl shadow-2xl relative">
+        <button onclick="closeEditCountdownModal()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-900 text-2xl">&times;</button>
         <h3 class="text-xl font-bold mb-5">Edit Countdown</h3>
         <input type="hidden" id="editCdId">
         <form id="editCountdownForm" class="space-y-4">
           <div>
-            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Title</label>
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Title</label>
             <input type="text" id="editCdTitle" required
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+              class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Target Date &amp; Time</label>
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Target Date &amp; Time</label>
             <input type="datetime-local" id="editCdTargetDate" required
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+              class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
           </div>
           <div class="flex items-center gap-3">
             <input type="checkbox" id="editCdEnabled" class="w-4 h-4 accent-purple-500 cursor-pointer">
-            <label for="editCdEnabled" class="text-sm text-gray-300 cursor-pointer">Show on home screen</label>
+            <label for="editCdEnabled" class="text-sm text-slate-600 cursor-pointer">Show on home screen</label>
           </div>
-          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 font-bold text-white py-3 rounded-xl transition-all shadow-lg active:scale-95 mt-2">
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 font-bold text-slate-900 py-3 rounded-xl transition-all shadow-lg active:scale-95 mt-2">
             Update Countdown
           </button>
         </form>
@@ -334,7 +684,7 @@
           ? `<span class="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded text-xs font-semibold w-24 md:w-20 inline-block text-center mt-1 md:mt-0">ACTIVE</span>`
           : isFailed
             ? `<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded text-xs font-semibold w-24 md:w-20 inline-block text-center mt-1 md:mt-0">FAILED</span>`
-            : `<span class="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs font-semibold w-24 md:w-20 inline-block text-center mt-1 md:mt-0">INACTIVE</span>`;
+            : `<span class="bg-gray-700 text-slate-600 px-2 py-1 rounded text-xs font-semibold w-24 md:w-20 inline-block text-center mt-1 md:mt-0">INACTIVE</span>`;
 
         const activateBtnBtn = k.active 
           ? `<button disabled class="text-xs text-gray-500 px-2 py-1">Active</button>`
@@ -343,7 +693,7 @@
         const deleteBtn = `<button onclick="deleteKey('${k.id}', this)" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-4 py-2 md:px-3 md:py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Delete</button>`;
 
         return `
-          <div class="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 px-5 py-5 hover:bg-gray-800/30 transition-colors group">
+          <div class="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 px-5 py-5 hover:bg-white/30 transition-colors group">
             <div class="md:col-span-3">
               <div class="text-[10px] text-gray-500 md:hidden uppercase font-bold mb-1 tracking-wider">Details</div>
               <div class="font-medium text-gray-200 text-base md:text-sm">${k.label}</div>
@@ -352,12 +702,12 @@
             
             <div class="md:col-span-4 flex flex-col justify-center mt-3 md:mt-0">
               <div class="text-[10px] text-gray-500 md:hidden uppercase font-bold mb-1 tracking-wider">Key</div>
-              <div class="font-mono text-xs text-gray-400 break-all bg-gray-900/60 p-2.5 md:p-0 md:bg-transparent rounded-lg border border-gray-800 md:border-transparent">${k.key}</div>
+              <div class="font-mono text-xs text-slate-500 break-all bg-slate-50/60 p-2.5 md:p-0 md:bg-transparent rounded-lg border border-slate-200 md:border-transparent">${k.key}</div>
             </div>
             
             <div class="md:col-span-1 flex md:flex-col justify-between items-center md:justify-center mt-3 md:mt-0">
               <div class="text-[10px] text-gray-500 md:hidden uppercase font-bold tracking-wider">Usage</div>
-              <div class="text-sm font-bold text-white md:text-gray-200">${k.usage_count || 0}</div>
+              <div class="text-sm font-bold text-slate-900 md:text-gray-200">${k.usage_count || 0}</div>
             </div>
             
             <div class="md:col-span-2 flex md:flex-col justify-between items-center md:items-center mt-1 md:mt-0">
@@ -480,13 +830,13 @@
         return;
       }
       tbody.innerHTML = countdowns.map(cd => `
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-gray-800/30 transition-colors">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-white/30 transition-colors">
           <div class="flex-1 min-w-0">
             <div class="font-medium text-gray-200 truncate">&#9203; ${cd.title}</div>
             <div class="text-xs text-purple-400 font-mono mt-0.5">${cd.target_date ? new Date(cd.target_date).toLocaleString() : 'No date set'}</div>
           </div>
           <div class="flex items-center gap-3 flex-shrink-0">
-            <span class="${cd.enabled ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-gray-400 border-gray-600'} border px-2 py-1 rounded text-xs font-semibold">
+            <span class="${cd.enabled ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-700 text-slate-500 border-gray-600'} border px-2 py-1 rounded text-xs font-semibold">
               ${cd.enabled ? 'VISIBLE' : 'HIDDEN'}
             </span>
             <button onclick="toggleCountdown('${cd.id}', ${cd.enabled})"
@@ -620,14 +970,14 @@
     };
 
     function getWidgetFieldsHTML(type, d={}) {
-      const inp = (id,ph,val='',type2='text') => `<input type="${type2}" id="${id}" placeholder="${ph}" value="${val.toString().replace(/"/g,'&quot;')}" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">`;
-      const ta  = (id,ph,val='') => `<textarea id="${id}" placeholder="${ph}" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">${val}</textarea>`;
-      const lbl = (text) => `<label class="block text-xs font-semibold text-gray-400 uppercase mb-1">${text}</label>`;
-      const sel = (id,opts,val='') => `<select id="${id}" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">${opts.map(o=>`<option value="${o.v}" ${o.v===val?'selected':''}>${o.l}</option>`).join('')}</select>`;
+      const inp = (id,ph,val='',type2='text') => `<input type="${type2}" id="${id}" placeholder="${ph}" value="${val.toString().replace(/"/g,'&quot;')}" class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">`;
+      const ta  = (id,ph,val='') => `<textarea id="${id}" placeholder="${ph}" rows="3" class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">${val}</textarea>`;
+      const lbl = (text) => `<label class="block text-xs font-semibold text-slate-500 uppercase mb-1">${text}</label>`;
+      const sel = (id,opts,val='') => `<select id="${id}" class="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">${opts.map(o=>`<option value="${o.v}" ${o.v===val?'selected':''}>${o.l}</option>`).join('')}</select>`;
       const img_inp = (id, val='') => `
         <div class="flex gap-2">
-          <input type="text" id="${id}" placeholder="https://..." value="${val.toString().replace(/"/g,'&quot;')}" class="flex-1 bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-          <button type="button" onclick="document.getElementById('${id}_file').click()" class="bg-gray-700 hover:bg-emerald-600 border border-gray-600 px-4 rounded-lg font-bold text-sm text-white transition-colors cursor-pointer">Upload</button>
+          <input type="text" id="${id}" placeholder="https://..." value="${val.toString().replace(/"/g,'&quot;')}" class="flex-1 bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <button type="button" onclick="document.getElementById('${id}_file').click()" class="bg-gray-700 hover:bg-emerald-600 border border-gray-600 px-4 rounded-lg font-bold text-sm text-slate-900 transition-colors cursor-pointer">Upload</button>
           <input type="file" id="${id}_file" accept="image/*" class="hidden" onchange="uploadWidgetImage(this, '${id}')">
         </div>`;
 
@@ -640,14 +990,14 @@
         case 'poll': return `
           <div>${lbl('Question')}${inp('wf_question','e.g. Who should win?',d.question||'')}</div>
           <div><div class="flex justify-between items-center mb-1">${lbl('Options')}<button type="button" onclick="addPollOption()" class="text-xs text-emerald-400 hover:text-emerald-300">+ Add Option</button></div>
-          <div id="pollOptions" class="space-y-2">${(d.options||[{id:'opt1',text:'',votes:0},{id:'opt2',text:'',votes:0}]).map((o,i)=>`<div class="flex gap-2 items-center"><input type="text" class="poll-opt-input flex-1 bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Option ${i+1}" value="${o.text.replace(/"/g,'&quot;')}" data-id="${o.id}" data-votes="${o.votes}"><span class="text-xs text-gray-500 w-12 text-right">${o.votes} votes</span></div>`).join('')}</div></div>`;
+          <div id="pollOptions" class="space-y-2">${(d.options||[{id:'opt1',text:'',votes:0},{id:'opt2',text:'',votes:0}]).map((o,i)=>`<div class="flex gap-2 items-center"><input type="text" class="poll-opt-input flex-1 bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Option ${i+1}" value="${o.text.replace(/"/g,'&quot;')}" data-id="${o.id}" data-votes="${o.votes}"><span class="text-xs text-gray-500 w-12 text-right">${o.votes} votes</span></div>`).join('')}</div></div>`;
 
         case 'winner': return `
           <div>${lbl('Winner Name')}${inp('wf_winner_name','e.g. Rahul Das',d.winner_name||'')}</div>
           <div>${lbl('Event / Award Name')}${inp('wf_event_name','e.g. Best Player 2026',d.event_name||'')}</div>
           <div>${lbl('Photo URL (optional)')}${img_inp('wf_photo_url',d.photo_url||'')}</div>
           <div>${lbl('Congratulation Message')}${ta('wf_message','Congratulations! You won...',d.message||'')}</div>
-          <div class="flex items-center gap-2 mt-2"><input type="checkbox" id="wf_fireworks" ${d.fireworks!==false?'checked':''} class="accent-emerald-500 w-4 h-4"><label for="wf_fireworks" class="text-sm text-gray-300">🎆 Enable Fireworks Animation</label></div>
+          <div class="flex items-center gap-2 mt-2"><input type="checkbox" id="wf_fireworks" ${d.fireworks!==false?'checked':''} class="accent-emerald-500 w-4 h-4"><label for="wf_fireworks" class="text-sm text-slate-600">🎆 Enable Fireworks Animation</label></div>
           <div class="mt-2">${lbl('Fireworks Custom Text (Optional)')}${inp('wf_fireworks_text','e.g. BOOM! or YAY!',d.fireworks_text||'')}</div>
           <div class="grid grid-cols-2 gap-3 mt-2">
             <div>${lbl('Duration')}${sel('wf_fw_duration',[{v:'5',l:'5 seconds'},{v:'10',l:'10 seconds'},{v:'999',l:'Endless'}],d.fw_duration||'5')}</div>
@@ -696,7 +1046,7 @@
           <div>${lbl('Background Style')}${sel('wf_bg',[{v:'dark',l:'🌑 Dark'},{v:'gradient',l:'🌈 Gradient'},{v:'light',l:'⬜ Light'}],d.bg||'gradient')}</div>`;
 
         case 'custom_html': return `
-          <div>${lbl('Custom HTML Code')}<textarea id="wf_html" rows="6" placeholder="<div>Your HTML here...</div>" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">${(d.html||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div>
+          <div>${lbl('Custom HTML Code')}<textarea id="wf_html" rows="6" placeholder="<div>Your HTML here...</div>" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">${(d.html||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div>
           <p class="text-xs text-yellow-500">⚠️ Use carefully — raw HTML will be rendered on home page</p>`;
 
         default: return '';
@@ -716,7 +1066,7 @@
       const id = 'opt' + Date.now();
       const div = document.createElement('div');
       div.className = 'flex gap-2 items-center';
-      div.innerHTML = `<input type="text" class="poll-opt-input flex-1 bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Option ${count}" data-id="${id}" data-votes="0"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-300 text-lg px-1">×</button>`;
+      div.innerHTML = `<input type="text" class="poll-opt-input flex-1 bg-white border border-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Option ${count}" data-id="${id}" data-votes="0"><button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-300 text-lg px-1">×</button>`;
       container.appendChild(div);
     }
 
@@ -777,11 +1127,11 @@
       widgets.forEach(w => { _widgetCache[w.id] = w; });
 
       tb.innerHTML = widgets.map((w, idx) => `
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-4 hover:bg-gray-800/30 transition-colors">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-4 hover:bg-white/30 transition-colors">
           <div class="flex items-center gap-3 flex-1 min-w-0">
             <div class="flex flex-col gap-0.5">
-              <button onclick="moveWidget('${w.id}', ${idx}, -1)" ${idx===0?'disabled':''} class="text-gray-500 hover:text-gray-300 disabled:opacity-20 text-xs leading-none">&#9650;</button>
-              <button onclick="moveWidget('${w.id}', ${idx}, +1)" ${idx===widgets.length-1?'disabled':''} class="text-gray-500 hover:text-gray-300 disabled:opacity-20 text-xs leading-none">&#9660;</button>
+              <button onclick="moveWidget('${w.id}', ${idx}, -1)" ${idx===0?'disabled':''} class="text-gray-500 hover:text-slate-600 disabled:opacity-20 text-xs leading-none">&#9650;</button>
+              <button onclick="moveWidget('${w.id}', ${idx}, +1)" ${idx===widgets.length-1?'disabled':''} class="text-gray-500 hover:text-slate-600 disabled:opacity-20 text-xs leading-none">&#9660;</button>
             </div>
             <span class="text-lg">${(WIDGET_LABELS[w.type]||'📦 Widget').split(' ')[0]}</span>
             <div class="min-w-0">
@@ -790,7 +1140,7 @@
             </div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
-            <span class="${w.enabled?'bg-green-500/20 text-green-400 border-green-500/30':'bg-gray-700 text-gray-400 border-gray-600'} border px-2 py-1 rounded text-xs font-semibold">${w.enabled?'ON':'OFF'}</span>
+            <span class="${w.enabled?'bg-green-500/20 text-green-400 border-green-500/30':'bg-gray-700 text-slate-500 border-gray-600'} border px-2 py-1 rounded text-xs font-semibold">${w.enabled?'ON':'OFF'}</span>
             <button onclick="toggleWidget('${w.id}',${w.enabled})" class="text-xs ${w.enabled?'bg-yellow-500/10 text-yellow-400':'bg-green-500/10 text-green-400'} px-3 py-1.5 rounded-lg">${w.enabled?'Hide':'Show'}</button>
             <button onclick="openEditWidgetModal('${w.id}')" class="text-xs bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg">Edit</button>
             <button onclick="deleteWidget('${w.id}',this)" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg">Delete</button>
@@ -940,8 +1290,376 @@
       await loadWidgets();
     }
 
-    loadWidgets();
+    // --- STORE APPS LOGIC ---
+    let storeAppsData = [];
 
-  </script>
+    async function loadStoreApps() {
+      try {
+        const res = await fetch('/api/admin/store-apps?t=' + new Date().getTime());
+        if (!res.ok) {
+            document.getElementById('appsTableBody').innerHTML = `<div class="px-5 py-8 text-center text-red-500">Failed to load store data (${res.status})</div>`;
+            return;
+        }
+        storeAppsData = await res.json();
+        renderStoreApps(storeAppsData);
+      } catch (e) {
+        console.warn("Store Apps load failed", e);
+        document.getElementById('appsTableBody').innerHTML = `<div class="px-5 py-8 text-center text-red-400">Error: ${e.message}</div>`;
+      }
+    }
+
+    function renderStoreApps(apps) {
+      const tb = document.getElementById('appsTableBody');
+      if (!apps || apps.length === 0) {
+        tb.innerHTML = `<div class="px-5 py-8 text-center text-slate-400">No apps or files found. Add one above.</div>`;
+        return;
+      }
+      
+      tb.innerHTML = Object.values(apps).map(app => `
+        <div class="grid grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-slate-50 transition-colors">
+          <div class="col-span-12 sm:col-span-4 flex items-center gap-3 overflow-hidden">
+            <div class="w-10 h-10 rounded-lg flex-shrink-0 bg-blue-100 flex items-center justify-center border border-blue-200 overflow-hidden">
+              ${app.image ? `<img src="${app.image}" class="w-full h-full object-cover">` : `<i class="fa-solid ${app.is_album ? 'fa-folder' : 'fa-file'} text-blue-500"></i>`}
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-800 truncate">${app.title}</p>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">${app.category || 'App'}</span>
+                ${app.version ? `<span class="text-[10px] text-slate-400">v${app.version}</span>` : ''}
+                ${app.is_album ? `<span class="text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded ml-1">Album (${app.album_files?.length || 0})</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="col-span-12 sm:col-span-5 flex items-center">
+             <div class="truncate text-xs text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded w-full cursor-pointer hover:bg-slate-200" onclick="window.open('${app.link || '#'}', '_blank')">
+               ${app.is_album ? 'Album Bundle (' + (app.album_files?.length || 0) + ' files)' : (app.link || 'No Download Link')}
+             </div>
+          </div>
+          <div class="col-span-12 sm:col-span-3 flex justify-end gap-2">
+            <button onclick="deleteStoreApp('${app.id}', this)"
+              class="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95">
+              <i class="fa-solid fa-trash-can"></i> Delete
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function deleteStoreApp(appId, btn) {
+      if (!confirm('Are you sure you want to delete this item? This will also remove it from Cloudinary.')) return;
+      const original = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+      try {
+        const res = await fetch(`/api/admin/store-apps/${appId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Delete failed');
+        loadStoreApps();
+      } catch(e) {
+        alert('Delete failed: ' + e.message);
+        btn.disabled = false;
+        btn.innerHTML = original;
+      }
+    }
+
+
+    // --- Thumbnail Upload Helpers ---
+    async function handleThumbUpload(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const statusEl = document.getElementById('thumbUploadStatus');
+      statusEl.classList.remove('hidden');
+      statusEl.textContent = 'Uploading thumbnail to Cloudinary...';
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+        document.getElementById('appImage').value = data.url;
+        showThumbPreview(data.url);
+        statusEl.textContent = '✅ Thumbnail uploaded!';
+        setTimeout(() => statusEl.classList.add('hidden'), 2000);
+      } catch(e) {
+        statusEl.textContent = '❌ Upload failed: ' + e.message;
+        statusEl.classList.add('text-red-500');
+      }
+    }
+
+    function previewThumbUrl(url) {
+      if (url && url.startsWith('http')) showThumbPreview(url);
+      else { document.getElementById('thumbPreviewBox').classList.add('hidden'); }
+    }
+
+    function showThumbPreview(url) {
+      const box = document.getElementById('thumbPreviewBox');
+      document.getElementById('thumbPreviewImg').src = url;
+      box.classList.remove('hidden');
+    }
+
+    function clearThumbPreview() {
+      document.getElementById('appImage').value = '';
+      document.getElementById('thumbPreviewImg').src = '';
+      document.getElementById('thumbPreviewBox').classList.add('hidden');
+      document.getElementById('thumbFileInput').value = '';
+    }
+
+    function openAddAppModal() {
+        document.getElementById('addAppForm').reset();
+        clearThumbPreview();
+        document.getElementById('addAppModal').classList.remove('hidden');
+    }
+    
+    function closeAddAppModal() {
+        document.getElementById('addAppModal').classList.add('hidden');
+    }
+
+    async function submitAddApp(e) {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type=submit]');
+        const originalText = btn.textContent;
+        btn.disabled = true; 
+        
+        try {
+            let finalDownloadLink = document.getElementById('appRawLink').value.trim();
+            const fileInput = document.getElementById('appFile');
+            
+            // Upload file to cloudinary if raw link is absent
+            if (!finalDownloadLink && fileInput.files.length > 0) {
+                btn.textContent = 'Uploading file to Cloudinary...';
+                let f = fileInput.files[0];
+                let formData = new FormData();
+                formData.append('image', f);
+                
+                let uploadRes = await fetch('/api/admin/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!uploadRes.ok) throw new Error("File upload failed");
+                let uploadData = await uploadRes.json();
+                finalDownloadLink = uploadData.url;
+            }
+            
+            if (!finalDownloadLink) {
+                alert("Please provide either an uploaded file or a raw download link!");
+                btn.disabled = false;
+                btn.textContent = originalText;
+                return;
+            }
+            
+            btn.textContent = 'Syncing to GitHub...';
+            
+            const payload = {
+                title: document.getElementById('appTitle').value.trim(),
+                description: document.getElementById('appDesc').value.trim(),
+                category: document.getElementById('appCategory').value.trim(),
+                version: document.getElementById('appVersion').value.trim(),
+                image: document.getElementById('appImage').value.trim(),
+                link: finalDownloadLink,
+                is_album: false
+            };
+            
+            const res = await fetch('/api/admin/store-apps', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!res.ok) throw new Error("Failed to save App to database");
+            
+            closeAddAppModal();
+            loadStoreApps();
+            alert("App published and synced to GitHub successfully!");
+            
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    loadWidgets();
+    // Start store apps initial load
+    loadStoreApps();
+    // --- Album Builder JS Logic ---
+    let pendingAlbumFiles = [];
+    const dragDropArea = document.getElementById('dragDropArea');
+    const bulkFileInput = document.getElementById('bulkFileInput');
+    const bulkUploadList = document.getElementById('bulkUploadList');
+    
+    dragDropArea.addEventListener('click', () => bulkFileInput.click());
+    
+    // Prevent default browser behavior on the whole window to avoid accidental file opening
+    window.addEventListener("dragover", function(e) { e.preventDefault(); }, false);
+    window.addEventListener("drop", function(e) { e.preventDefault(); }, false);
+
+    dragDropArea.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragDropArea.classList.add('border-blue-500', 'bg-blue-100');
+    });
+    dragDropArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragDropArea.classList.add('border-blue-500', 'bg-blue-100');
+    });
+    dragDropArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragDropArea.classList.remove('border-blue-500', 'bg-blue-100');
+    });
+    dragDropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragDropArea.classList.remove('border-blue-500', 'bg-blue-100');
+        if (e.dataTransfer && e.dataTransfer.files.length) {
+            handleSelectedFiles(e.dataTransfer.files);
+        }
+    });
+    bulkFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            handleSelectedFiles(e.target.files);
+            e.target.value = ''; // Reset so same file can be chosen again
+        }
+    });
+
+    function handleSelectedFiles(files) {
+        for (let i = 0; i < files.length; i++) {
+            pendingAlbumFiles.push(files[i]);
+        }
+        renderPendingFiles();
+    }
+    
+    function renderPendingFiles() {
+        bulkUploadList.innerHTML = '';
+        pendingAlbumFiles.forEach((file, index) => {
+            const div = document.createElement('div');
+            div.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm";
+            div.innerHTML = `
+                <div class="flex items-center gap-3 overflow-hidden">
+                   <div class="text-blue-500"><i class="fa-solid fa-file-image"></i></div>
+                   <div class="truncate text-sm text-slate-700 font-medium">${file.name}</div>
+                   <div class="text-xs text-slate-400">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                </div>
+                <button onclick="removePendingFile(${index})" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition-colors text-xs">Remove</button>
+            `;
+            bulkUploadList.appendChild(div);
+        });
+    }
+
+    window.removePendingFile = function(index) {
+        pendingAlbumFiles.splice(index, 1);
+        renderPendingFiles();
+    };
+
+    window.publishAlbum = async function() {
+        if (pendingAlbumFiles.length === 0) {
+            alert("No files selected!");
+            return;
+        }
+        
+        const title = document.getElementById('albumTitleInput').value.trim();
+        if (!title) {
+            alert("Please enter a title for the album!");
+            return;
+        }
+
+        const btn = document.querySelector('button[onclick="publishAlbum()"]');
+        btn.disabled = true;
+        btn.textContent = "Uploading...";
+        
+        document.getElementById('bulkUploadProgress').classList.remove('hidden');
+        const progressBar = document.getElementById('bulkProgressBar');
+        const progressText = document.getElementById('bulkProgressText');
+        
+        let uploadedFiles = [];
+        let totalFiles = pendingAlbumFiles.length;
+
+        try {
+            for (let i = 0; i < totalFiles; i++) {
+                let f = pendingAlbumFiles[i];
+                progressText.textContent = `Uploading ${f.name} (${i + 1}/${totalFiles})...`;
+                
+                let b64 = await toBase64(f);
+                let payload = {
+                    file: b64,
+                    filename: f.name,
+                    service: 'cloudinary' // Or whichever default
+                };
+
+                let res = await fetch('/api/admin/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    let err = await res.json();
+                    throw new Error(`Failed on ${f.name}: ` + (err.error || 'Server error'));
+                }
+
+                let dat = await res.json();
+                uploadedFiles.push({
+                    name: f.name,
+                    link: dat.url
+                });
+                
+                progressBar.style.width = Math.round(((i + 1) / totalFiles) * 100) + '%';
+            }
+            
+            // Now create the App Entry
+            progressText.textContent = `Finalizing Album...`;
+            
+            let coverImg = uploadedFiles.length > 0 ? uploadedFiles[0].link : "";
+            
+            const appRes = await fetch('/api/admin/store-apps', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: title,
+                    description: `${totalFiles} items in this album.`,
+                    category: "Albums",
+                    version: "1.0",
+                    image: coverImg,
+                    is_album: true,
+                    album_files: uploadedFiles
+                })
+            });
+            
+            if (!appRes.ok) throw new Error("Failed to create the Album App entry");
+            
+            alert(`Album "${title}" published successfully!`);
+            
+            // Trigger GitHub Deploy via backend endpoint
+            await fetch('/api/admin/store-apps/sync', { method: 'POST' }).catch(() => {});
+            
+            // Reset
+            pendingAlbumFiles = [];
+            renderPendingFiles();
+            document.getElementById('albumTitleInput').value = "";
+            document.getElementById('bulkUploadProgress').classList.add('hidden');
+            progressBar.style.width = '0%';
+            loadStoreApps(); // refresh table
+            
+        } catch (err) {
+            alert('Upload failed: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Publish Album";
+        }
+    };
+
+    function toBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
+    }
+
+</script>
 </body>
 </html>

@@ -218,13 +218,13 @@ def api_admin_get_countdowns():
 def api_admin_add_countdown():
     try:
         data = request.json
-        if not data.get("title") or not data.get("tickcounter_id"):
-            return jsonify({"error": "title and tickcounter_id are required"}), 400
+        if not data.get("title") or not data.get("target_date"):
+            return jsonify({"error": "title and target_date are required"}), 400
         config = utils.load_config()
         new_cd = {
             "id": str(uuid.uuid4()),
             "title": data["title"],
-            "tickcounter_id": data["tickcounter_id"],
+            "target_date": data["target_date"],
             "enabled": bool(data.get("enabled", True)),
             "created_at": datetime.datetime.now().isoformat()
         }
@@ -247,8 +247,8 @@ def api_admin_update_countdown(cd_id):
             return jsonify({"error": "not_found"}), 404
         if "title" in data:
             cd["title"] = data["title"]
-        if "tickcounter_id" in data:
-            cd["tickcounter_id"] = data["tickcounter_id"]
+        if "target_date" in data:
+            cd["target_date"] = data["target_date"]
         if "enabled" in data:
             cd["enabled"] = bool(data["enabled"])
         utils.save_config(config)
@@ -316,15 +316,25 @@ def api_admin_widgets_add():
 @app.route("/api/admin/upload", methods=["POST"])
 @login_required
 def api_admin_upload():
-    if "image" not in request.files:
-        return jsonify({"error": "No image file provided"}), 400
-    file = request.files["image"]
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
-    
     try:
         import cloudinary.uploader
-        upload_result = cloudinary.uploader.upload(file, resource_type="image")
+        
+        # Check if JSON payload (Base64)
+        if request.is_json:
+            data = request.json
+            if "file" not in data:
+                return jsonify({"error": "No file provided in JSON"}), 400
+            file_data = data["file"]
+            upload_result = cloudinary.uploader.upload(file_data, resource_type="auto")
+        else:
+            # Fallback to Multipart
+            if "image" not in request.files:
+                return jsonify({"error": "No image file provided"}), 400
+            file = request.files["image"]
+            if file.filename == "":
+                return jsonify({"error": "No selected file"}), 400
+            upload_result = cloudinary.uploader.upload(file, resource_type="auto")
+            
         secure_url = upload_result.get("secure_url")
         return jsonify({"success": True, "url": secure_url})
     except Exception as e:
@@ -380,8 +390,173 @@ def api_admin_widgets_reorder():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+def sync_store_apps_to_github():
+    try:
+        import os, shutil, requests, base64
+        # Always sync to local frontend first
+        shutil.copy("data/downloads.json", "github-pages-app/data.json")
+        
+        # Github Sync
+        github_pat = os.getenv("GITHUB_PAT")
+        github_user = os.getenv("GITHUB_USER")
+        github_repo = os.getenv("GITHUB_REPO")
+        
+        if not github_pat or not github_user or not github_repo:
+            print("Github Sync skipped: Missing GITHUB_PAT, GITHUB_USER or GITHUB_REPO in .env")
+            return
+            
+        with open("data/downloads.json", "r") as f:
+            content = f.read()
+            
+        url = f"https://api.github.com/repos/{github_user}/{github_repo}/contents/data.json"
+        headers = {
+            "Authorization": f"token {github_pat}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+        
+        # Get SHA
+        get_res = requests.get(url, headers=headers)
+        sha = get_res.json().get("sha") if get_res.status_code == 200 else None
+        
+        payload = {
+            "message": "Auto-sync store apps from Admin Panel",
+            "content": base64.b64encode(content.encode("utf-8")).decode("utf-8")
+        }
+        if sha:
+            payload["sha"] = sha
+            
+        put_res = requests.put(url, headers=headers, json=payload)
+        if put_res.status_code in [200, 201]:
+            print("Successfully synced to GitHub!")
+        else:
+            print(f"Failed to sync to GitHub: {put_res.text}")
+    except Exception as e:
+        print(f"Error syncing to github: {e}")
+
+@app.route("/api/admin/store-apps", methods=["GET", "POST"])
+@login_required
+def create_store_app():
+    import json
+    # GET — return all items
+    if request.method == "GET":
+        try:
+            with open("data/downloads.json", "r") as f:
+                items = json.load(f)
+            return jsonify(items)
+        except FileNotFoundError:
+            return jsonify([])
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    try:
+        data = request.json
+        try:
+            with open("data/downloads.json", "r") as f:
+                items = json.load(f)
+        except FileNotFoundError:
+            items = []
+            
+        new_app = {
+            "id": f"app_{uuid.uuid4().hex[:8]}",
+            "title": data.get("title", ""),
+            "description": data.get("description", ""),
+            "link": data.get("link", ""),
+            "image": data.get("image", ""),
+            "category": data.get("category", "Apps"),
+            "version": data.get("version", ""),
+            "is_album": data.get("is_album", False),
+            "album_files": data.get("album_files", [])
+        }
+        
+        items.insert(0, new_app) # Add to top
+        with open("data/downloads.json", "w") as f:
+            json.dump(items, f, indent=2)
+            
+        sync_store_apps_to_github()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/admin/store-apps/<app_id>", methods=["PUT"])
+@login_required
+def update_store_app(app_id):
+    import json
+    try:
+        data = request.json
+        with open("data/downloads.json", "r") as f:
+            items = json.load(f)
+            
+        for idx, item in enumerate(items):
+            if item.get("id") == app_id:
+                items[idx]["title"] = data.get("title", item["title"])
+                items[idx]["description"] = data.get("description", item["description"])
+                items[idx]["link"] = data.get("link", item["link"])
+                items[idx]["image"] = data.get("image", item["image"])
+                items[idx]["category"] = data.get("category", item["category"])
+                items[idx]["version"] = data.get("version", item.get("version", ""))
+                if "is_album" in data:
+                    items[idx]["is_album"] = data["is_album"]
+                if "album_files" in data:
+                    items[idx]["album_files"] = data["album_files"]
+                break
+                
+        with open("data/downloads.json", "w") as f:
+            json.dump(items, f, indent=2)
+            
+        sync_store_apps_to_github()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/admin/store-apps/<app_id>", methods=["DELETE"])
+@login_required
+def delete_store_app(app_id):
+    import json
+    try:
+        with open("data/downloads.json", "r") as f:
+            items = json.load(f)
+        
+        # Find the item to delete
+        item_to_delete = next((x for x in items if x.get("id") == app_id), None)
+        if not item_to_delete:
+            return jsonify({"error": "Item not found"}), 404
+
+        # Optionally destroy from Cloudinary
+        try:
+            import cloudinary.uploader
+            links_to_delete = []
+            if item_to_delete.get("is_album"):
+                for af in item_to_delete.get("album_files", []):
+                    links_to_delete.append(af.get("link", ""))
+            else:
+                links_to_delete.append(item_to_delete.get("link", ""))
+                
+            for link in links_to_delete:
+                if link and "res.cloudinary.com" in link:
+                    # Extract public_id from URL
+                    parts = link.split("/upload/")
+                    if len(parts) > 1:
+                        public_id = parts[1].rsplit(".", 1)[0]
+                        # Strip any transformations
+                        public_id = public_id.replace("fl_attachment/", "")
+                        cloudinary.uploader.destroy(public_id, resource_type="auto")
+        except Exception as cloud_err:
+            print(f"Cloudinary delete warning (non-fatal): {cloud_err}")
+
+        # Remove from list
+        items = [x for x in items if x.get("id") != app_id]
+        
+        with open("data/downloads.json", "w") as f:
+            json.dump(items, f, indent=2)
+            
+        sync_store_apps_to_github()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/widgets/<widget_id>/vote", methods=["POST"])
 def api_widget_vote(widget_id):
+
     """Session-protected poll voting."""
     try:
         data = request.json
