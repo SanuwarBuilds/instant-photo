@@ -880,7 +880,7 @@ def process():
                 passport_images.append((img, copies))
             except ValueError as e:
                 err_str = str(e)
-                if "410" in err_str or "face" in err_str.lower():
+                if "410" in err_str or "face" in err_str.lower() or "unknown_foreground" in err_str.lower():
                     return {"error": "face_detection_failed"}, 410
                 elif "429" in err_str or "quota" in err_str.lower() or "402" in err_str or "insufficient_credits" in err_str.lower():
                     return {"error": "quota_exceeded"}, 429
