@@ -158,6 +158,7 @@ def api_admin_dashboard():
                 "presets": analytics.get("presets", {}),
                 "errors": analytics.get("errors", {}),
                 "last_event_at": analytics.get("last_event_at"),
+                "daily_history": analytics.get("daily_history", {})
             }
         })
     except Exception as e:
@@ -238,6 +239,70 @@ def api_admin_delete_key(key_id):
     except Exception as e:
         print(f"Error in api_admin_delete_key: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/api/admin/keys/<key_id>/check", methods=["POST"])
+@login_required
+def api_admin_check_key(key_id):
+    try:
+        config = utils.load_config()
+        keys = config.get("api_keys", [])
+        target_key = next((k for k in keys if k.get("id") == key_id), None)
+        if not target_key:
+            return jsonify({"error": "key_not_found"}), 404
+        
+        api_key = target_key.get("key")
+        # Call remove.bg account endpoint
+        res = requests.get(
+            "https://api.remove.bg/v1.0/account",
+            headers={"X-Api-Key": api_key},
+            timeout=5
+        )
+        
+        if res.status_code == 200:
+            data = res.json().get("data", {})
+            attributes = data.get("attributes", {})
+            credits = attributes.get("credits", {})
+            api = attributes.get("api", {})
+            
+            total_credits = credits.get("total", 0)
+            free_calls = api.get("free_calls", 0)
+            
+            # Update key in config
+            target_key["last_failed"] = None
+            target_key["credits_info"] = {
+                "total": total_credits,
+                "free_calls": free_calls,
+                "checked_at": datetime.datetime.now().isoformat()
+            }
+            utils.save_config(config)
+            
+            return jsonify({
+                "success": True,
+                "status": "healthy",
+                "credits": total_credits,
+                "free_calls": free_calls
+            })
+        else:
+            error_msg = "Invalid key"
+            try:
+                errors = res.json().get("errors", [])
+                if errors:
+                    error_msg = errors[0].get("title", error_msg)
+            except:
+                pass
+            
+            target_key["last_failed"] = True
+            utils.save_config(config)
+            return jsonify({
+                "success": False,
+                "status": "failed",
+                "error": error_msg,
+                "http_code": res.status_code
+            })
+    except Exception as e:
+        print(f"Error checking key health: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/admin/maintenance", methods=["POST"])
 @login_required
@@ -801,6 +866,39 @@ def parse_int_value(value, default, min_value, max_value):
         value = default
     return max(min_value, min(max_value, value))
 
+def fix_image_rotation(image_bytes):
+    try:
+        img = Image.open(BytesIO(image_bytes))
+        transposed_img = ImageOps.exif_transpose(img)
+        out = BytesIO()
+        fmt = img.format or "JPEG"
+        transposed_img.save(out, format=fmt)
+        return out.getvalue()
+    except Exception as e:
+        print(f"EXIF rotation correction failed: {e}")
+        return image_bytes
+
+
+def draw_dashed_line(draw, p1, p2, color=(200, 200, 200), width=1, dash_length=8, gap_length=6):
+    x1, y1 = p1
+    x2, y2 = p2
+    dx = x2 - x1
+    dy = y2 - y1
+    dist = (dx**2 + dy**2)**0.5
+    if dist == 0:
+        return
+    dx /= dist
+    dy /= dist
+    
+    current_dist = 0
+    while current_dist < dist:
+        seg_end = min(current_dist + dash_length, dist)
+        draw.line([
+            (x1 + dx * current_dist, y1 + dy * current_dist),
+            (x1 + dx * seg_end, y1 + dy * seg_end)
+        ], fill=color, width=width)
+        current_dist += dash_length + gap_length
+
 
 def clean_bg_color(value):
     value = (value or "#FFFFFF").strip()
@@ -856,6 +954,22 @@ def record_generation(success, image_count=0, output_format="pdf", preset="custo
         if error:
             errors = analytics.setdefault("errors", {})
             errors[error] = errors.get(error, 0) + 1
+
+        # Record daily history
+        today_str = datetime.date.today().isoformat()
+        history = analytics.setdefault("daily_history", {})
+        day_stats = history.setdefault(today_str, {"success": 0, "failure": 0})
+        if success:
+            day_stats["success"] = day_stats.get("success", 0) + 1
+        else:
+            day_stats["failure"] = day_stats.get("failure", 0) + 1
+            
+        # Prune older than 60 days
+        if len(history) > 60:
+            sorted_days = sorted(history.keys())
+            while len(history) > 60:
+                oldest = sorted_days.pop(0)
+                history.pop(oldest, None)
 
         utils.save_config(config)
     except Exception as e:
@@ -1016,6 +1130,7 @@ def process():
         passport_height = parse_int_field("height", 480, 120, 1200) * scale
         border = parse_int_field("border", 2, 0, 20) * scale
         spacing = parse_int_field("spacing", 10, 0, 80) * scale
+        cut_marks = request.form.get("cut_marks", "true") == "true"
         bg_color = clean_bg_color(request.form.get("bg_color", "#FFFFFF"))
         margin_x = 10 * scale
         margin_y = 10 * scale
@@ -1034,7 +1149,7 @@ def process():
             if f"image_{i}" not in request.files:
                 continue
             file = request.files[f"image_{i}"]
-            raw = file.read()
+            raw = fix_image_rotation(file.read())
             meta = validate_image_bytes(raw, file.filename or f"image_{i}")
             total_upload_bytes += meta["size"]
             if total_upload_bytes > MAX_TOTAL_IMAGE_BYTES:
@@ -1045,7 +1160,7 @@ def process():
         # Fallback to single image mode
         if not images_data and "image" in request.files:
             file = request.files["image"]
-            raw = file.read()
+            raw = fix_image_rotation(file.read())
             meta = validate_image_bytes(raw, file.filename or "image")
             copies = parse_int_value(request.form.get("copies", 6), 6, 1, MAX_COPIES_PER_IMAGE)
             images_data.append((raw, copies, meta))
@@ -1135,6 +1250,18 @@ def process():
                     new_page()
 
                 current_page.paste(passport_img, (x, y))
+                
+                if cut_marks:
+                    from PIL import ImageDraw
+                    draw = ImageDraw.Draw(current_page)
+                    w = max(1, 1 * scale)
+                    dl = 8 * scale
+                    gl = 6 * scale
+                    draw_dashed_line(draw, (x, y), (x + paste_w, y), color=(200, 200, 200), width=w, dash_length=dl, gap_length=gl)
+                    draw_dashed_line(draw, (x, y + paste_h), (x + paste_w, y + paste_h), color=(200, 200, 200), width=w, dash_length=dl, gap_length=gl)
+                    draw_dashed_line(draw, (x, y), (x, y + paste_h), color=(200, 200, 200), width=w, dash_length=dl, gap_length=gl)
+                    draw_dashed_line(draw, (x + paste_w, y), (x + paste_w, y + paste_h), color=(200, 200, 200), width=w, dash_length=dl, gap_length=gl)
+                    
                 print(f"DEBUG: Placed at x={x}, y={y}")
                 x += paste_w + horizontal_gap
 

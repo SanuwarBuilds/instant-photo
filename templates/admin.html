@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Admin Dashboard — Instant Photo</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
@@ -283,6 +284,39 @@
         <div class="stat-label"><i class="fa-solid fa-image" style="color:#0ea5e9;margin-right:4px;"></i> Images</div>
         <div class="stat-value" id="stat-total-images">–</div>
         <div id="stat-failures" style="font-size:0.7rem;color:#94a3b8;margin-top:4px;">0 failed</div>
+      </div>
+    </div>
+
+    <!-- Analytics Charts Section -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- 1. Daily Activity -->
+      <div class="glass-card bg-white border border-slate-200 shadow-sm rounded-2xl p-5 shadow-lg">
+        <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-line text-blue-500"></i> Generation Activity (Last 14 Days)
+        </h4>
+        <div class="h-56 relative w-full">
+          <canvas id="activityChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 2. Output Format -->
+      <div class="glass-card bg-white border border-slate-200 shadow-sm rounded-2xl p-5 shadow-lg">
+        <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-pie text-emerald-500"></i> Export Format Distribution
+        </h4>
+        <div class="h-56 relative w-full flex items-center justify-center">
+          <canvas id="formatsChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 3. Errors Analysis -->
+      <div class="glass-card bg-white border border-slate-200 shadow-sm rounded-2xl p-5 shadow-lg">
+        <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-1.5">
+          <i class="fa-solid fa-bug text-red-500"></i> Error Log Analysis
+        </h4>
+        <div class="h-56 relative w-full">
+          <canvas id="errorsChart"></canvas>
+        </div>
       </div>
     </div>
 
@@ -648,7 +682,168 @@
 
 
   <script>
-    // --- Data Fetching ---
+    // --- Chart instances & updates ---
+    let activityChartInstance = null;
+    let formatsChartInstance = null;
+    let errorsChartInstance = null;
+
+    function updateCharts(analytics) {
+      // 1. Activity Chart (Line Chart)
+      const history = analytics.daily_history || {};
+      let sortedDates = Object.keys(history).sort();
+      if (sortedDates.length === 0) {
+        const today = new Date().toISOString().slice(0, 10);
+        sortedDates = [today];
+        history[today] = { success: 0, failure: 0 };
+      }
+      
+      const labels = sortedDates.slice(-14); // Last 14 days
+      const successes = labels.map(d => (history[d] && history[d].success) || 0);
+      const failures = labels.map(d => (history[d] && history[d].failure) || 0);
+
+      if (activityChartInstance) activityChartInstance.destroy();
+      const ctx1 = document.getElementById('activityChart').getContext('2d');
+      activityChartInstance = new Chart(ctx1, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Successful Sheets',
+              data: successes,
+              borderColor: '#10B981', // green-500
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.3,
+              fill: true,
+              borderWidth: 2
+            },
+            {
+              label: 'Failures',
+              data: failures,
+              borderColor: '#EF4444', // red-500
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              tension: 0.3,
+              fill: true,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0, 0, 0, 0.05)' },
+              ticks: { stepSize: 1 }
+            },
+            x: {
+              grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
+          }
+        }
+      });
+
+      // 2. Output Format Chart (Doughnut Chart)
+      const formats = analytics.formats || {};
+      const formatLabels = Object.keys(formats);
+      const formatData = Object.values(formats);
+      
+      if (formatsChartInstance) formatsChartInstance.destroy();
+      const ctx2 = document.getElementById('formatsChart').getContext('2d');
+      
+      if (formatLabels.length === 0) {
+        formatsChartInstance = new Chart(ctx2, {
+          type: 'doughnut',
+          data: {
+            labels: ['No Data'],
+            datasets: [{ data: [1], backgroundColor: ['#E2E8F0'] }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+            }
+          }
+        });
+      } else {
+        const colors = { pdf: '#3B82F6', png: '#10B981', zip: '#F59E0B' };
+        const bgColors = formatLabels.map(f => colors[f.toLowerCase()] || '#8B5CF6');
+        formatsChartInstance = new Chart(ctx2, {
+          type: 'doughnut',
+          data: {
+            labels: formatLabels.map(f => f.toUpperCase()),
+            datasets: [{
+              data: formatData,
+              backgroundColor: bgColors,
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+            }
+          }
+        });
+      }
+
+      // 3. Errors Analysis Chart (Horizontal Bar Chart)
+      const errors = analytics.errors || {};
+      const errorLabels = Object.keys(errors);
+      const errorData = Object.values(errors);
+
+      if (errorsChartInstance) errorsChartInstance.destroy();
+      const ctx3 = document.getElementById('errorsChart').getContext('2d');
+      
+      if (errorLabels.length === 0) {
+        errorsChartInstance = new Chart(ctx3, {
+          type: 'bar',
+          data: {
+            labels: ['No Errors'],
+            datasets: [{ data: [0], backgroundColor: '#E2E8F0' }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      } else {
+        errorsChartInstance = new Chart(ctx3, {
+          type: 'bar',
+          data: {
+            labels: errorLabels.map(e => e.replace(/_/g, ' ')),
+            datasets: [{
+              label: 'Error Count',
+              data: errorData,
+              backgroundColor: '#EF4444',
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+              x: { beginAtZero: true, ticks: { stepSize: 1 } },
+              y: { grid: { display: false } }
+            },
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      }
+    }
+
     async function loadDashboard() {
       try {
         const ts = new Date().getTime();
@@ -679,6 +874,9 @@
         // Render Table
         renderKeysTable(keys);
 
+        // Update Charts
+        updateCharts(analytics);
+
       } catch (e) {
         console.error("Failed to load dashboard", e);
       }
@@ -699,11 +897,17 @@
             ? `<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded text-xs font-semibold w-24 md:w-20 inline-block text-center mt-1 md:mt-0">FAILED</span>`
             : `<span class="bg-gray-700 text-slate-600 px-2 py-1 rounded text-xs font-semibold w-24 md:w-20 inline-block text-center mt-1 md:mt-0">INACTIVE</span>`;
 
+        const checkBtn = `<button onclick="checkKeyHealth('${k.id}', this)" class="text-xs bg-emerald-500/20 text-emerald-600 hover:bg-emerald-500/30 px-4 py-2 md:px-3 md:py-1.5 rounded-lg transition-colors mr-2 cursor-pointer font-semibold" title="Check key credits & health">Test</button>`;
+
         const activateBtnBtn = k.active 
-          ? `<button disabled class="text-xs text-gray-500 px-2 py-1">Active</button>`
+          ? `<button disabled class="text-xs text-gray-500 px-2 py-1 mr-2">Active</button>`
           : `<button onclick="activateKey('${k.id}', this)" class="text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 px-4 py-2 md:px-3 md:py-1.5 rounded-lg transition-colors mr-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Activate</button>`;
           
         const deleteBtn = `<button onclick="deleteKey('${k.id}', this)" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-4 py-2 md:px-3 md:py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Delete</button>`;
+
+        const creditsHtml = k.credits_info 
+          ? `<div class="text-[11px] text-emerald-600 font-semibold mt-1">Credits: ${k.credits_info.total} (Free: ${k.credits_info.free_calls})</div>`
+          : `<div class="text-[10px] text-slate-400 mt-1">Credits: untested</div>`;
 
         return `
           <div class="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 px-5 py-5 hover:bg-white/30 transition-colors group">
@@ -711,6 +915,7 @@
               <div class="text-[10px] text-gray-500 md:hidden uppercase font-bold mb-1 tracking-wider">Details</div>
               <div class="font-medium text-gray-200 text-base md:text-sm">${k.label}</div>
               <div class="text-xs text-blue-400/80 font-medium">${k.service}</div>
+              ${creditsHtml}
             </div>
             
             <div class="md:col-span-4 flex flex-col justify-center mt-3 md:mt-0">
@@ -729,6 +934,7 @@
             </div>
             
             <div class="md:col-span-2 flex justify-end md:justify-end items-center mt-4 md:mt-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+              ${checkBtn}
               ${activateBtnBtn}
               ${deleteBtn}
             </div>
@@ -820,6 +1026,23 @@
       } catch (e) { 
         alert("Failed to delete key: " + e.message); 
         if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Delete'; }
+      }
+    // Check Key Health (credits and status)
+    async function checkKeyHealth(id, btnElement) {
+      if (btnElement) { btnElement.disabled = true; btnElement.textContent = '...'; }
+      try {
+        const res = await fetch(`/api/admin/keys/${id}/check`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Key test successful!\nCredits remaining: ${data.credits}\nFree credits: ${data.free_calls}`);
+        } else {
+          alert(`Key test failed: ${data.error || "Invalid API key structure or quota exceeded."}`);
+        }
+        await loadDashboard();
+      } catch (e) {
+        alert("Failed to test key: " + e.message);
+      } finally {
+        if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Test'; }
       }
     }
 

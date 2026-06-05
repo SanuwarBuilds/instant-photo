@@ -180,6 +180,44 @@
       opacity: 0;
       cursor: pointer;
     }
+
+    /* Face guide inside Cropper */
+    .passport-face-guide {
+      position: absolute;
+      top: 15%;
+      left: 20%;
+      width: 60%;
+      height: 65%;
+      border: 2px dashed #10B981; /* emerald-500 */
+      border-radius: 50%;
+      pointer-events: none;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .passport-face-guide::after {
+      content: 'Align Face Here';
+      font-size: 10px;
+      color: #10B981;
+      font-weight: 600;
+      background: rgba(15, 23, 42, 0.85);
+      padding: 2px 6px;
+      border-radius: 4px;
+      position: absolute;
+      bottom: -24px;
+      white-space: nowrap;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .passport-eye-line {
+      position: absolute;
+      top: 45%;
+      left: 5%;
+      width: 90%;
+      height: 1px;
+      border-top: 1px dashed rgba(16, 185, 129, 0.5);
+      pointer-events: none;
+    }
   </style>
 </head>
 
@@ -747,6 +785,10 @@
                 class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <input type="range" id="borderRange" min="0" max="20" value="2" class="w-full mt-2 accent-blue-500" />
             </div>
+            <div class="sm:col-span-2 flex items-center gap-3.5 mt-2 bg-gray-800/40 p-3 rounded-lg border border-gray-700/50">
+              <input type="checkbox" id="cutMarks" checked class="w-4 h-4 accent-blue-500 rounded cursor-pointer" />
+              <label for="cutMarks" class="text-sm font-medium text-gray-300 cursor-pointer select-none">Show Dotted Cut/Crop Marks (guidelines for cutting photos)</label>
+            </div>
           </div>
         </div>
 
@@ -842,6 +884,25 @@
       <div class="max-h-[400px] overflow-hidden rounded-lg">
         <img id="cropModalImage" src="" style="max-width:100%; display:block;" />
       </div>
+      
+      <!-- Sliders for Brightness & Contrast -->
+      <div class="mt-4 space-y-3">
+        <div>
+          <div class="flex justify-between text-xs text-gray-400 mb-1">
+            <span>Brightness</span>
+            <span id="brightnessVal">100%</span>
+          </div>
+          <input type="range" id="brightnessSlider" min="50" max="150" value="100" class="w-full accent-blue-500" />
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-gray-400 mb-1">
+            <span>Contrast</span>
+            <span id="contrastVal">100%</span>
+          </div>
+          <input type="range" id="contrastSlider" min="50" max="150" value="100" class="w-full accent-blue-500" />
+        </div>
+      </div>
+
       <div class="flex gap-3 mt-4 justify-end">
         <button id="cancelCropBtn"
           class="bg-gray-600 hover:bg-gray-500 text-white py-2 px-5 rounded-lg transition-all">Cancel</button>
@@ -1259,19 +1320,58 @@
     });
     addMoreBtn.addEventListener('click', () => imageInput.click());
 
-    // ---- Cropper Modal ----
+    // ---- Cropper Modal & Sliders ----
+    const brightnessSlider = document.getElementById('brightnessSlider');
+    const contrastSlider = document.getElementById('contrastSlider');
+    const brightnessVal = document.getElementById('brightnessVal');
+    const contrastVal = document.getElementById('contrastVal');
+
+    function applyCropperFilters() {
+      const b = brightnessSlider.value;
+      const c = contrastSlider.value;
+      brightnessVal.textContent = b + '%';
+      contrastVal.textContent = c + '%';
+      
+      const container = cropperModal.querySelector('.cropper-container');
+      if (container) {
+        container.style.filter = `brightness(${b}%) contrast(${c}%)`;
+      }
+    }
+
+    brightnessSlider.addEventListener('input', applyCropperFilters);
+    contrastSlider.addEventListener('input', applyCropperFilters);
+
     function openCropper(id) {
       const photo = photos.find(p => p.id === id);
       if (!photo) return;
       pendingCropId = id;
       cropModalImage.src = photo.previewUrl;
       cropperModal.classList.remove('hidden');
+      
+      // Reset sliders
+      brightnessSlider.value = 100;
+      contrastSlider.value = 100;
+      brightnessVal.textContent = '100%';
+      contrastVal.textContent = '100%';
+
       if (activeCropper) activeCropper.destroy();
       activeCropper = new Cropper(cropModalImage, {
         aspectRatio: 384 / 472,
         viewMode: 1,
         dragMode: 'move',
         autoCropArea: 1,
+        ready() {
+          const viewBox = cropperModal.querySelector('.cropper-view-box');
+          if (viewBox) {
+            const faceGuide = document.createElement('div');
+            faceGuide.className = 'passport-face-guide';
+            const eyeLine = document.createElement('div');
+            eyeLine.className = 'passport-eye-line';
+            viewBox.appendChild(faceGuide);
+            viewBox.appendChild(eyeLine);
+          }
+          applyCropperFilters();
+        }
       });
     }
 
@@ -1281,18 +1381,27 @@
         imageSmoothingEnabled: true,
         imageSmoothingQuality: 'high'
       });
-      canvas.toBlob(blob => {
+      
+      // Apply filters to canvas
+      const filteredCanvas = document.createElement('canvas');
+      filteredCanvas.width = canvas.width;
+      filteredCanvas.height = canvas.height;
+      const ctx = filteredCanvas.getContext('2d');
+      ctx.filter = `brightness(${brightnessSlider.value}%) contrast(${contrastSlider.value}%)`;
+      ctx.drawImage(canvas, 0, 0);
+
+      filteredCanvas.toBlob(blob => {
         const photo = photos.find(p => p.id === pendingCropId);
         if (!photo) return;
         photo.croppedFile = new File([blob], 'cropped-' + photo.originalFile.name, { type: 'image/png' });
         photo.previewUrl = URL.createObjectURL(blob);
-        photo.quality = 'cropped; keep face centered in the crop box.';
+        photo.quality = 'cropped & adjusted; keep face centered.';
         activeCropper.destroy();
         activeCropper = null;
         pendingCropId = null;
         cropperModal.classList.add('hidden');
         renderPhotoList();
-        showNotification("Photo cropped successfully.", false);
+        showNotification("Photo cropped and adjusted successfully.", false);
       }, 'image/png');
     });
 
@@ -1368,6 +1477,7 @@
       formData.append('bg_color', selectedBgColor); // Send selected background color
       formData.append('output_format', outputFormat.value);
       formData.append('preset', selectedPreset);
+      formData.append('cut_marks', document.getElementById('cutMarks').checked);
 
       loading.classList.remove('hidden');
       generateBtn.disabled = true;
