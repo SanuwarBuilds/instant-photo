@@ -11,7 +11,9 @@
   <link rel="icon" href="https://res.cloudinary.com/dcajb02df/image/upload/v1753960691/logo_pyncju.png"
     type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2563eb" />
   <title>Sanuwar Instant Photo</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <style>
@@ -688,6 +690,17 @@
       <!-- Photo Cards List -->
       <div id="photoList" class="mt-6 space-y-3"></div>
 
+      <!-- Face / Quality Guide -->
+      <div id="qualityGuide" class="hidden mt-5 bg-slate-950/60 border border-slate-700 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-300 font-bold">i</div>
+          <div class="flex-1">
+            <h3 class="text-sm font-semibold text-gray-200">Face position guide</h3>
+            <ul id="qualityGuideList" class="mt-2 space-y-1 text-xs text-gray-400"></ul>
+          </div>
+        </div>
+      </div>
+
       <!-- Add More Button (shown after first upload) -->
       <div id="addMoreWrapper" class="hidden mt-3 text-center">
         <button id="addMoreBtn"
@@ -698,6 +711,12 @@
 
       <!-- Advanced Options -->
       <div class="mt-8 space-y-4">
+        <div class="bg-gray-900/50 p-5 rounded-xl border border-gray-700">
+          <h3 class="text-sm font-semibold text-gray-300 mb-3">Photo Size Preset</h3>
+          <div id="presetButtons" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+          <p id="presetHelp" class="text-xs text-gray-500 mt-3">Choose a preset or adjust size manually.</p>
+        </div>
+
         <div class="text-center">
           <button id="toggleAdvanced" class="text-blue-400 hover:text-blue-300 transition-all text-sm">Advanced
             Options</button>
@@ -708,21 +727,25 @@
               <label class="block mb-1 text-sm font-medium">Width (px)</label>
               <input type="number" id="width" value="390"
                 class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="range" id="widthRange" min="120" max="900" value="390" class="w-full mt-2 accent-blue-500" />
             </div>
             <div>
               <label class="block mb-1 text-sm font-medium">Height (px)</label>
               <input type="number" id="height" value="480"
                 class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="range" id="heightRange" min="120" max="1200" value="480" class="w-full mt-2 accent-blue-500" />
             </div>
             <div>
               <label class="block mb-1 text-sm font-medium">Spacing (px)</label>
               <input type="number" id="spacing" value="10"
                 class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="range" id="spacingRange" min="0" max="80" value="10" class="w-full mt-2 accent-blue-500" />
             </div>
             <div>
               <label class="block mb-1 text-sm font-medium">Border (px)</label>
               <input type="number" id="border" value="2"
                 class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="range" id="borderRange" min="0" max="20" value="2" class="w-full mt-2 accent-blue-500" />
             </div>
           </div>
         </div>
@@ -739,10 +762,36 @@
             <button type="button" class="color-swatch selected" data-color="#FFFFFF" style="background:#FFFFFF;" title="White"></button>
             <button type="button" class="color-swatch" data-color="#3B82F6" style="background:#3B82F6;" title="Blue"></button>
             <button type="button" class="color-swatch" data-color="#22C55E" style="background:#22C55E;" title="Green"></button>
+            <button type="button" class="color-swatch" data-color="#EF4444" style="background:#EF4444;" title="Red"></button>
+            <button type="button" class="color-swatch" data-color="#E5E7EB" style="background:#E5E7EB;" title="Light Gray"></button>
             <div class="custom-color-btn" id="customColorBtn" title="Custom Color">
               <input type="color" id="customColorInput" value="#FF6B6B" />
             </div>
             <span id="bgColorLabel" class="text-xs text-gray-500 ml-1">#FFFFFF</span>
+          </div>
+        </div>
+
+        <div class="bg-gray-900/50 p-5 rounded-xl border border-gray-700">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block mb-1 text-sm font-medium">Output Format</label>
+              <select id="outputFormat" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="pdf">PDF print sheet</option>
+                <option value="png">PNG sheet page 1</option>
+                <option value="zip">ZIP: PDF + PNG pages</option>
+              </select>
+            </div>
+            <div class="bg-slate-950/70 border border-slate-700 rounded-lg p-3 text-xs text-gray-400">
+              <div class="flex justify-between"><span>Print size</span><span class="text-gray-200">A4 210 x 297 mm</span></div>
+              <div class="flex justify-between mt-1"><span>Estimated fit/page</span><span id="fitEstimate" class="text-gray-200">-- photos</span></div>
+              <div class="flex justify-between mt-1"><span>Estimated pages</span><span id="pageEstimate" class="text-gray-200">--</span></div>
+            </div>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button id="fitMoreBtn" type="button" class="text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 rounded-lg px-3 py-2 transition-all">
+              Fit more photos
+            </button>
+            <span class="text-xs text-gray-500 self-center">Margin preview uses 10px sheet margins and 10px horizontal gap.</span>
           </div>
         </div>
 
@@ -756,11 +805,17 @@
             class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 hidden">
             Download PDF
           </button>
+          <a id="orderPrintBtn" target="_blank" rel="noopener"
+            class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-center font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 hidden">
+            Order Print
+          </a>
         </div>
         <div id="loading" class="hidden text-blue-400 font-semibold text-center">Processing images... please wait</div>
       </div>
 
       <embed id="pdfPreview" type="application/pdf" class="w-full h-[500px] mt-6 hidden rounded-lg" />
+      <img id="pngPreview" alt="Generated sheet preview" class="w-full mt-6 hidden rounded-lg border border-gray-700" />
+      <div id="generatedMeta" class="hidden mt-3 text-xs text-gray-400 bg-gray-900/60 border border-gray-700 rounded-lg p-3"></div>
     </div>
   </main>
 
@@ -833,6 +888,12 @@
       emailjs.init("mmGDeX1c3j2Bzop95");
     } catch(e) { console.warn("EmailJS init failed: ", e); }
 
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').catch(err => console.warn('Service worker failed:', err));
+      });
+    }
+
     // ---- Maintenance Check ----
     async function checkMaintenance() {
       try {
@@ -901,6 +962,16 @@
       });
     } catch(e) { console.warn("Particles fallback: ", e); }
 
+    const PRESETS = {
+      indian_passport: { label: 'Indian Passport', width: 390, height: 480, copies: 8, help: 'Common 35 x 45 mm passport style.' },
+      pan: { label: 'PAN Card', width: 300, height: 360, copies: 12, help: 'Compact ID photo size.' },
+      aadhaar: { label: 'Aadhaar', width: 300, height: 360, copies: 12, help: 'Compact ID photo size.' },
+      visa: { label: 'Visa', width: 600, height: 600, copies: 6, help: 'Square visa style photo.' },
+      school_id: { label: 'School ID', width: 300, height: 360, copies: 16, help: 'Smaller ID card photo.' },
+      stamp: { label: 'Stamp Size', width: 240, height: 300, copies: 24, help: 'High count small prints.' }
+    };
+    let selectedPreset = 'indian_passport';
+
     // ---- State ----
     // photos: Array of { id, originalFile, croppedFile, previewUrl, copies }
     let photos = [];
@@ -919,10 +990,21 @@
     const addMoreBtn = document.getElementById('addMoreBtn');
     const generateBtn = document.getElementById('generateBtn');
     const downloadBtn = document.getElementById('downloadBtn');
+    const orderPrintBtn = document.getElementById('orderPrintBtn');
     const pdfPreview = document.getElementById('pdfPreview');
+    const pngPreview = document.getElementById('pngPreview');
+    const generatedMeta = document.getElementById('generatedMeta');
     const loading = document.getElementById('loading');
     const toggleAdvanced = document.getElementById('toggleAdvanced');
     const advancedOptions = document.getElementById('advancedOptions');
+    const outputFormat = document.getElementById('outputFormat');
+    const presetButtons = document.getElementById('presetButtons');
+    const presetHelp = document.getElementById('presetHelp');
+    const fitEstimate = document.getElementById('fitEstimate');
+    const pageEstimate = document.getElementById('pageEstimate');
+    const fitMoreBtn = document.getElementById('fitMoreBtn');
+    const qualityGuide = document.getElementById('qualityGuide');
+    const qualityGuideList = document.getElementById('qualityGuideList');
     const cropperModal = document.getElementById('cropperModal');
     const cropModalImage = document.getElementById('cropModalImage');
     const confirmCropBtn = document.getElementById('confirmCropBtn');
@@ -947,6 +1029,132 @@
       }, 3000);
     }
 
+    function escapeHTML(value) {
+      return String(value || '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
+    function setFieldValue(id, value) {
+      const input = document.getElementById(id);
+      const range = document.getElementById(id + 'Range');
+      if (input) input.value = value;
+      if (range) range.value = value;
+    }
+
+    function syncNumberAndRange(id) {
+      const input = document.getElementById(id);
+      const range = document.getElementById(id + 'Range');
+      if (!input || !range) return;
+      input.addEventListener('input', () => {
+        range.value = input.value;
+        selectedPreset = 'custom';
+        renderPresetButtons();
+        updateSheetEstimate();
+      });
+      range.addEventListener('input', () => {
+        input.value = range.value;
+        selectedPreset = 'custom';
+        renderPresetButtons();
+        updateSheetEstimate();
+      });
+    }
+
+    function totalRequestedCopies() {
+      return photos.reduce((sum, photo) => sum + (parseInt(photo.copies, 10) || 0), 0);
+    }
+
+    function calculateFit() {
+      const width = parseInt(document.getElementById('width').value, 10) || 390;
+      const height = parseInt(document.getElementById('height').value, 10) || 480;
+      const borderVal = parseInt(document.getElementById('border').value, 10) || 0;
+      const spacingVal = parseInt(document.getElementById('spacing').value, 10) || 0;
+      const a4W = 2480;
+      const a4H = 3508;
+      const margin = 10;
+      const horizontalGap = 10;
+      const pasteW = width + borderVal * 2;
+      const pasteH = height + borderVal * 2;
+      const cols = Math.max(1, Math.floor((a4W - margin * 2 + horizontalGap) / (pasteW + horizontalGap)));
+      const rows = Math.max(1, Math.floor((a4H - margin * 2 + spacingVal) / (pasteH + spacingVal)));
+      return cols * rows;
+    }
+
+    function updateSheetEstimate() {
+      const fit = calculateFit();
+      const total = totalRequestedCopies();
+      fitEstimate.textContent = `${fit} photos`;
+      pageEstimate.textContent = total ? Math.ceil(total / fit) : '--';
+    }
+
+    function renderPresetButtons() {
+      presetButtons.innerHTML = Object.entries(PRESETS).map(([key, preset]) => `
+        <button type="button" data-preset="${key}" class="preset-btn text-left rounded-lg border px-3 py-2 transition-all ${selectedPreset === key ? 'bg-blue-500/20 border-blue-400 text-blue-200' : 'bg-gray-800/60 border-gray-700 text-gray-300 hover:border-gray-500'}">
+          <span class="block text-sm font-semibold">${preset.label}</span>
+          <span class="block text-[11px] text-gray-500">${preset.width} x ${preset.height}px</span>
+        </button>
+      `).join('');
+      presetButtons.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+      });
+      const current = PRESETS[selectedPreset];
+      presetHelp.textContent = current ? current.help : 'Custom size selected.';
+    }
+
+    function applyPreset(key) {
+      const preset = PRESETS[key];
+      if (!preset) return;
+      selectedPreset = key;
+      setFieldValue('width', preset.width);
+      setFieldValue('height', preset.height);
+      photos = photos.map(photo => ({ ...photo, copies: preset.copies }));
+      renderPresetButtons();
+      renderPhotoList();
+      updateSheetEstimate();
+    }
+
+    function updateQualityGuide() {
+      if (!photos.length) {
+        qualityGuide.classList.add('hidden');
+        return;
+      }
+      const messages = [
+        'Keep face front-facing, centered, and clearly visible.',
+        'Use plain background and avoid shadows on face.',
+        'Eyes should be open; avoid tilted head, cap, or dark glasses.'
+      ];
+      photos.forEach(photo => {
+        if (photo.quality) messages.push(`${photo.originalFile.name}: ${photo.quality}`);
+      });
+      qualityGuideList.innerHTML = messages.map(msg => `<li>${escapeHTML(msg)}</li>`).join('');
+      qualityGuide.classList.remove('hidden');
+    }
+
+    function analyzePhotoQuality(photo) {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const size = 80;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, size, size);
+        const data = ctx.getImageData(0, 0, size, size).data;
+        let brightness = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          brightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
+        }
+        brightness = brightness / (data.length / 4);
+        if (img.width < 500 || img.height < 500) photo.quality = 'low resolution; upload a clearer photo if possible.';
+        else if (brightness < 65) photo.quality = 'looks dark; use better light.';
+        else if (brightness > 230) photo.quality = 'looks over-bright; avoid harsh light.';
+        else photo.quality = 'basic quality looks okay.';
+        updateQualityGuide();
+      };
+      img.onerror = updateQualityGuide;
+      img.src = photo.previewUrl;
+    }
+
     // ---- Render Photo Cards ----
     function renderPhotoList() {
       photoList.innerHTML = '';
@@ -956,8 +1164,9 @@
         card.innerHTML = `
           <img src="${photo.previewUrl}" class="w-16 h-20 object-cover rounded-lg border border-gray-600 flex-shrink-0" />
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-200 truncate">${photo.originalFile.name}</p>
-            <p class="text-xs text-gray-500 mt-0.5">${photo.croppedFile ? '✅ Cropped' : '⚠️ Not cropped'}</p>
+            <p class="text-sm font-medium text-gray-200 truncate">${escapeHTML(photo.originalFile.name)}</p>
+            <p class="text-xs text-gray-500 mt-0.5">${photo.croppedFile ? 'Cropped' : 'Original preview'}</p>
+            <p class="text-[11px] text-gray-600 mt-0.5">${escapeHTML(photo.quality || 'Checking basic quality...')}</p>
           </div>
           <div class="flex flex-col items-center gap-1">
             <label class="text-xs text-gray-400">Copies</label>
@@ -979,6 +1188,7 @@
           const id = parseInt(e.target.dataset.id);
           const photo = photos.find(p => p.id === id);
           if (photo) photo.copies = Math.max(1, parseInt(e.target.value) || 1);
+          updateSheetEstimate();
         });
       });
 
@@ -997,10 +1207,12 @@
           photos = photos.filter(p => p.id !== id);
           renderPhotoList();
           if (photos.length === 0) addMoreWrapper.classList.add('hidden');
+          updateQualityGuide();
         });
       });
 
       addMoreWrapper.classList.toggle('hidden', photos.length === 0);
+      updateSheetEstimate();
     }
 
     // ---- Add Files ----
@@ -1019,10 +1231,12 @@
           copies: 6
         };
         photos.push(photo);
+        analyzePhotoQuality(photo);
         added++;
       });
       if (added === 0) showNotification("Please upload valid image files (JPG, PNG, WEBP).");
       renderPhotoList();
+      updateQualityGuide();
     }
 
     // ---- Drop Zone ----
@@ -1072,6 +1286,7 @@
         if (!photo) return;
         photo.croppedFile = new File([blob], 'cropped-' + photo.originalFile.name, { type: 'image/png' });
         photo.previewUrl = URL.createObjectURL(blob);
+        photo.quality = 'cropped; keep face centered in the crop box.';
         activeCropper.destroy();
         activeCropper = null;
         pendingCropId = null;
@@ -1119,6 +1334,20 @@
       customColorBtn.classList.add('selected');
     });
 
+    renderPresetButtons();
+    ['width', 'height', 'spacing', 'border'].forEach(syncNumberAndRange);
+    ['width', 'height', 'spacing', 'border'].forEach(id => {
+      document.getElementById(id).addEventListener('change', updateSheetEstimate);
+    });
+    outputFormat.addEventListener('change', updateSheetEstimate);
+    fitMoreBtn.addEventListener('click', () => {
+      setFieldValue('spacing', 4);
+      setFieldValue('border', 1);
+      updateSheetEstimate();
+      showNotification("Spacing and border reduced to fit more photos.", false);
+    });
+    applyPreset(selectedPreset);
+
     // ---- Generate PDF ----
     generateBtn.addEventListener('click', () => {
       if (photos.length === 0) {
@@ -1137,42 +1366,76 @@
       formData.append('spacing', document.getElementById('spacing').value);
       formData.append('border', document.getElementById('border').value);
       formData.append('bg_color', selectedBgColor); // Send selected background color
+      formData.append('output_format', outputFormat.value);
+      formData.append('preset', selectedPreset);
 
       loading.classList.remove('hidden');
       generateBtn.disabled = true;
       downloadBtn.classList.add('hidden');
+      orderPrintBtn.classList.add('hidden');
       pdfPreview.classList.add('hidden');
+      pngPreview.classList.add('hidden');
+      generatedMeta.classList.add('hidden');
 
       fetch('/process', { method: 'POST', body: formData })
         .then(async response => {
           if (!response.ok) {
             let errorMsg = "Internal Error, try again later.";
+            let errData = {};
             try {
-              const errData = await response.json();
+              errData = await response.json();
               if (errData.error) errorMsg = errData.error;
             } catch (e) { }
 
             if (response.status === 429 && errorMsg === "quota_exceeded") errorMsg = "Server Daily Quota Exceeded. Please try again later.";
             if (response.status === 410 && errorMsg === "face_detection_failed") errorMsg = "Cannot Detect Face/Background in one of the images.";
+            if (response.status === 410 && errData?.message) errorMsg = `${errorMsg} Tips: ${errData.message}`;
+            if (response.status === 413 && errData?.message) errorMsg = errData.message;
+            if (errorMsg === "upload_too_large") errorMsg = "Upload is too large. Use fewer or smaller images.";
+            if (errorMsg === "invalid_image") errorMsg = "Please upload a valid JPG, PNG, or WEBP image.";
+            if (errorMsg === "external_service_timeout") errorMsg = "Processing timed out. Try smaller images or try again.";
 
             showNotification(errorMsg);
             return null;
           }
-          return response.blob();
+          const blob = await response.blob();
+          return {
+            blob,
+            pageCount: response.headers.get('X-Page-Count') || '1',
+            printSize: response.headers.get('X-Print-Size') || 'A4 210mm x 297mm',
+            format: response.headers.get('X-Output-Format') || outputFormat.value
+          };
         })
-        .then(blob => {
-          if (!blob) return;
+        .then(result => {
+          if (!result) return;
+          const { blob, pageCount, printSize, format } = result;
           const url = URL.createObjectURL(blob);
-          pdfPreview.classList.remove('hidden');
-          pdfPreview.src = url;
+          let filename = 'passport-sheet.pdf';
+          if (format === 'png') filename = 'passport-sheet-page-1.png';
+          if (format === 'zip') filename = 'passport-sheet.zip';
+
+          if (format === 'pdf') {
+            pdfPreview.classList.remove('hidden');
+            pdfPreview.src = url;
+          } else if (format === 'png') {
+            pngPreview.classList.remove('hidden');
+            pngPreview.src = url;
+          }
+          generatedMeta.textContent = `Generated ${format.toUpperCase()} | ${pageCount} page(s) | ${printSize}`;
+          generatedMeta.classList.remove('hidden');
+          downloadBtn.textContent = `Download ${format.toUpperCase()}`;
           downloadBtn.classList.remove('hidden');
+          const presetLabel = PRESETS[selectedPreset]?.label || 'Custom';
+          const orderText = `Hello, I generated a ${presetLabel} photo sheet (${pageCount} page(s), ${printSize}). I want to order prints.`;
+          orderPrintBtn.href = `https://wa.me/?text=${encodeURIComponent(orderText)}`;
+          orderPrintBtn.classList.remove('hidden');
           downloadBtn.onclick = () => {
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'passport-sheet.pdf';
+            link.download = filename;
             link.click();
           };
-          showNotification("PDF generated successfully!", false);
+          showNotification("Sheet generated successfully!", false);
         })
         .catch(err => {
           console.error(err);

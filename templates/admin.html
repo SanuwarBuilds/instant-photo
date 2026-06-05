@@ -256,7 +256,7 @@
   <main class="max-w-5xl mx-auto px-4 sm:px-5 py-6 space-y-5">
 
     <!-- Stats Row -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
       <div class="stat-card">
         <div class="stat-label"><i class="fa-solid fa-key" style="color:#6366f1;margin-right:4px;"></i> API Keys</div>
         <div class="stat-value" id="stat-total-keys">–</div>
@@ -274,6 +274,15 @@
           <input type="checkbox" id="maintenanceToggle" class="toggle-checkbox">
           <span class="toggle-slider"></span>
         </label>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-file-pdf" style="color:#dc2626;margin-right:4px;"></i> Sheets</div>
+        <div class="stat-value" id="stat-total-generations">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-image" style="color:#0ea5e9;margin-right:4px;"></i> Images</div>
+        <div class="stat-value" id="stat-total-images">–</div>
+        <div id="stat-failures" style="font-size:0.7rem;color:#94a3b8;margin-top:4px;">0 failed</div>
       </div>
     </div>
 
@@ -662,6 +671,10 @@
         document.getElementById('stat-maintenance').textContent = dash.maintenance_enabled ? "System Offline" : "System Online";
         document.getElementById('stat-maintenance').className = `text-sm font-medium ${dash.maintenance_enabled ? 'text-red-400' : 'text-green-400'}`;
         document.getElementById('maintenanceToggle').checked = dash.maintenance_enabled;
+        const analytics = dash.analytics || {};
+        document.getElementById('stat-total-generations').textContent = analytics.total_generations || 0;
+        document.getElementById('stat-total-images').textContent = analytics.total_images || 0;
+        document.getElementById('stat-failures').textContent = `${analytics.total_failures || 0} failed`;
 
         // Render Table
         renderKeysTable(keys);

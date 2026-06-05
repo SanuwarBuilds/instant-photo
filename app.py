@@ -11,9 +11,36 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.utils
 import os
+import re
+import zipfile
+from werkzeug.exceptions import RequestEntityTooLarge
 
 app = Flask(__name__)
-app.secret_key = "SANUWAR_PHOTO_SECRET"
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "SANUWAR_PHOTO_SECRET")
+app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_MB", "32")) * 1024 * 1024
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.getenv("FLASK_COOKIE_SECURE", "1" if os.getenv("VERCEL") else "0") == "1",
+)
+
+MAX_IMAGE_BYTES = int(os.getenv("MAX_IMAGE_MB", "8")) * 1024 * 1024
+MAX_TOTAL_IMAGE_BYTES = int(os.getenv("MAX_TOTAL_IMAGE_MB", "24")) * 1024 * 1024
+MAX_IMAGES_PER_REQUEST = int(os.getenv("MAX_IMAGES_PER_REQUEST", "8"))
+MAX_COPIES_PER_IMAGE = int(os.getenv("MAX_COPIES_PER_IMAGE", "54"))
+MAX_OUTPUT_PAGES = int(os.getenv("MAX_OUTPUT_PAGES", "6"))
+REQUEST_TIMEOUT = (10, 75)
+GITHUB_TIMEOUT = 10
+ENHANCE_TIMEOUT = (10, 75)
+HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_large_request(_error):
+    return jsonify({
+        "error": "upload_too_large",
+        "message": f"Total upload limit is {app.config['MAX_CONTENT_LENGTH'] // (1024 * 1024)} MB."
+    }), 413
 
 def get_live_downloads_data():
     import json, os, requests, base64
@@ -25,7 +52,7 @@ def get_live_downloads_data():
             try:
                 url = f"https://api.github.com/repos/{github_user}/{github_repo}/contents/data/downloads.json"
                 headers = {"Authorization": f"token {github_pat}", "Accept": "application/vnd.github.v3+json"}
-                res = requests.get(url, headers=headers)
+                res = requests.get(url, headers=headers, timeout=GITHUB_TIMEOUT)
                 if res.status_code == 200:
                     content = res.json().get("content", "")
                     decoded = base64.b64decode(content).decode("utf-8")
@@ -117,11 +144,21 @@ def api_admin_dashboard():
         config = utils.load_config()
         keys = config.get("api_keys", [])
         active_key = next((k for k in keys if k.get("active")), None)
+        analytics = config.get("analytics", {})
         
         return jsonify({
             "total_keys": len(keys),
             "active_key_label": active_key.get("label") if active_key else "None",
-            "maintenance_enabled": config.get("maintenance", {}).get("enabled", False)
+            "maintenance_enabled": config.get("maintenance", {}).get("enabled", False),
+            "analytics": {
+                "total_generations": analytics.get("total_generations", 0),
+                "total_failures": analytics.get("total_failures", 0),
+                "total_images": analytics.get("total_images", 0),
+                "formats": analytics.get("formats", {}),
+                "presets": analytics.get("presets", {}),
+                "errors": analytics.get("errors", {}),
+                "last_event_at": analytics.get("last_event_at"),
+            }
         })
     except Exception as e:
         print(f"Error in api_admin_dashboard: {e}")
@@ -702,6 +739,129 @@ def robots():
     return Response(txt, mimetype="text/plain")
 
 
+@app.route("/manifest.webmanifest")
+def manifest():
+    return jsonify({
+        "name": "Sanuwar Instant Photo",
+        "short_name": "Instant Photo",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "background_color": "#111827",
+        "theme_color": "#2563eb",
+        "description": "Create print-ready passport photo sheets.",
+        "icons": [
+            {
+                "src": "https://res.cloudinary.com/dcajb02df/image/upload/v1753960691/logo_pyncju.png",
+                "sizes": "192x192",
+                "type": "image/png"
+            }
+        ]
+    })
+
+
+@app.route("/service-worker.js")
+def service_worker():
+    from flask import Response
+    js = """
+const CACHE_NAME = 'instant-photo-shell-v1';
+const SHELL = ['/', '/downloads', '/manifest.webmanifest'];
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL)));
+  self.skipWaiting();
+});
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+});
+"""
+    return Response(js, mimetype="application/javascript")
+
+
+def has_remove_bg_key():
+    return bool(utils.get_active_api_key("remove_bg") or REMOVE_BG_API_KEY)
+
+
+def parse_int_field(name, default, min_value, max_value):
+    try:
+        value = int(request.form.get(name, default))
+    except (TypeError, ValueError):
+        value = default
+    return max(min_value, min(max_value, value))
+
+
+def parse_int_value(value, default, min_value, max_value):
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        value = default
+    return max(min_value, min(max_value, value))
+
+
+def clean_bg_color(value):
+    value = (value or "#FFFFFF").strip()
+    return value.upper() if HEX_COLOR_RE.match(value) else "#FFFFFF"
+
+
+def validate_image_bytes(raw_bytes, filename="image"):
+    if not raw_bytes:
+        raise ValueError("empty_image")
+    if len(raw_bytes) > MAX_IMAGE_BYTES:
+        raise ValueError("image_too_large")
+
+    try:
+        with Image.open(BytesIO(raw_bytes)) as img:
+            img.verify()
+        with Image.open(BytesIO(raw_bytes)) as img:
+            width, height = img.size
+            fmt = (img.format or "").upper()
+    except Exception:
+        raise ValueError("invalid_image")
+
+    if fmt not in {"JPEG", "PNG", "WEBP"}:
+        raise ValueError("unsupported_image_type")
+    if width < 120 or height < 120:
+        raise ValueError("image_too_small")
+    if width * height > 30_000_000:
+        raise ValueError("image_resolution_too_large")
+
+    return {
+        "filename": filename,
+        "size": len(raw_bytes),
+        "width": width,
+        "height": height,
+        "format": fmt,
+    }
+
+
+def record_generation(success, image_count=0, output_format="pdf", preset="custom", error=None):
+    try:
+        config = utils.load_config()
+        analytics = config.setdefault("analytics", {})
+        analytics["total_generations"] = analytics.get("total_generations", 0) + (1 if success else 0)
+        analytics["total_failures"] = analytics.get("total_failures", 0) + (0 if success else 1)
+        analytics["total_images"] = analytics.get("total_images", 0) + int(image_count or 0)
+        analytics["last_event_at"] = datetime.datetime.now().isoformat()
+
+        formats = analytics.setdefault("formats", {})
+        formats[output_format] = formats.get(output_format, 0) + 1
+
+        presets = analytics.setdefault("presets", {})
+        presets[preset or "custom"] = presets.get(preset or "custom", 0) + 1
+
+        if error:
+            errors = analytics.setdefault("errors", {})
+            errors[error] = errors.get(error, 0) + 1
+
+        utils.save_config(config)
+    except Exception as e:
+        print(f"Analytics save warning: {e}")
+
+
 def hex_to_rgb(hex_color):
     """Convert a hex color string (e.g. '#3B82F6') to an (R, G, B) tuple."""
     hex_color = hex_color.lstrip("#")
@@ -738,6 +898,7 @@ def process_single_image(input_image_bytes, bg_color="#FFFFFF"):
             files={"image_file": input_image_bytes},
             data={"size": "auto"},
             headers={"X-Api-Key": current_api_key},
+            timeout=REQUEST_TIMEOUT,
         )
 
         if response.status_code == 200:
@@ -809,7 +970,9 @@ def process_single_image(input_image_bytes, bg_color="#FFFFFF"):
         ],
     )[0]
 
-    enhanced_img_data = requests.get(enhanced_url).content
+    enhanced_res = requests.get(enhanced_url, timeout=ENHANCE_TIMEOUT)
+    enhanced_res.raise_for_status()
+    enhanced_img_data = enhanced_res.content
     enhanced_img = Image.open(BytesIO(enhanced_img_data)).convert("RGB")
 
     # Step 5: Resize alpha mask to match enhanced image (in case of size mismatch)
@@ -828,20 +991,32 @@ def process_single_image(input_image_bytes, bg_color="#FFFFFF"):
 def process():
     print("==== /process endpoint hit ====")
 
-    if not REMOVE_BG_API_KEY:
-        return {"error": "Remove.bg API Key missing. Please provide .env or setup keys."}, 500
-    if not CLOUDINARY_CLOUD_NAME:
-        return {"error": "Cloudinary details missing. Please provide .env or setup keys."}, 500
+    output_format = (request.form.get("output_format") or "pdf").lower()
+    if output_format not in {"pdf", "png", "zip"}:
+        output_format = "pdf"
+    preset_name = (request.form.get("preset") or "custom").strip()[:40] or "custom"
+
+    def fail(error, status=400, message=None, image_count=0):
+        record_generation(False, image_count=image_count, output_format=output_format, preset=preset_name, error=error)
+        payload = {"error": error}
+        if message:
+            payload["message"] = message
+        return jsonify(payload), status
+
+    if not has_remove_bg_key():
+        return fail("missing_remove_bg_key", 500, "Add an active remove.bg key in Admin Panel or set REMOVE_BG_API_KEY.")
+    if not CLOUDINARY_CLOUD_NAME or not os.getenv("CLOUDINARY_API_KEY") or not os.getenv("CLOUDINARY_API_SECRET"):
+        return fail("missing_cloudinary_config", 500, "Cloudinary cloud name, API key, and API secret are required.")
 
     try:
         # Layout settings
         # Higher DPI scaling for maximum quality (600 DPI instead of 300 DPI)
         scale = 2
-        passport_width = int(request.form.get("width", 390)) * scale
-        passport_height = int(request.form.get("height", 480)) * scale
-        border = int(request.form.get("border", 2)) * scale
-        spacing = int(request.form.get("spacing", 10)) * scale
-        bg_color = request.form.get("bg_color", "#FFFFFF")  # Background color from UI
+        passport_width = parse_int_field("width", 390, 120, 900) * scale
+        passport_height = parse_int_field("height", 480, 120, 1200) * scale
+        border = parse_int_field("border", 2, 0, 20) * scale
+        spacing = parse_int_field("spacing", 10, 0, 80) * scale
+        bg_color = clean_bg_color(request.form.get("bg_color", "#FFFFFF"))
         margin_x = 10 * scale
         margin_y = 10 * scale
         horizontal_gap = 10 * scale
@@ -849,29 +1024,40 @@ def process():
 
         # Collect images and their copy counts
         images_data = []
+        total_upload_bytes = 0
 
         # Multi-image mode
-        i = 0
-        while f"image_{i}" in request.files:
+        if f"image_{MAX_IMAGES_PER_REQUEST}" in request.files:
+            return fail("too_many_images", 413, f"Maximum {MAX_IMAGES_PER_REQUEST} images are allowed per request.")
+
+        for i in range(MAX_IMAGES_PER_REQUEST):
+            if f"image_{i}" not in request.files:
+                continue
             file = request.files[f"image_{i}"]
-            copies = int(request.form.get(f"copies_{i}", 6))
-            images_data.append((file.read(), copies))
-            i += 1
+            raw = file.read()
+            meta = validate_image_bytes(raw, file.filename or f"image_{i}")
+            total_upload_bytes += meta["size"]
+            if total_upload_bytes > MAX_TOTAL_IMAGE_BYTES:
+                return fail("total_upload_too_large", 413, f"Total image upload limit is {MAX_TOTAL_IMAGE_BYTES // (1024 * 1024)} MB.")
+            copies = parse_int_value(request.form.get(f"copies_{i}", 6), 6, 1, MAX_COPIES_PER_IMAGE)
+            images_data.append((raw, copies, meta))
 
         # Fallback to single image mode
         if not images_data and "image" in request.files:
             file = request.files["image"]
-            copies = int(request.form.get("copies", 6))
-            images_data.append((file.read(), copies))
+            raw = file.read()
+            meta = validate_image_bytes(raw, file.filename or "image")
+            copies = parse_int_value(request.form.get("copies", 6), 6, 1, MAX_COPIES_PER_IMAGE)
+            images_data.append((raw, copies, meta))
 
         if not images_data:
-            return "No image uploaded", 400
+            return fail("no_image_uploaded", 400, "Please upload at least one image.")
 
         print(f"DEBUG: Processing {len(images_data)} image(s)")
 
         # Process all images
         passport_images = []
-        for idx, (img_bytes, copies) in enumerate(images_data):
+        for idx, (img_bytes, copies, meta) in enumerate(images_data):
             print(f"DEBUG: Processing image {idx + 1} with {copies} copies")
             try:
                 img = process_single_image(img_bytes, bg_color=bg_color)
@@ -881,19 +1067,39 @@ def process():
             except ValueError as e:
                 err_str = str(e)
                 if "410" in err_str or "face" in err_str.lower() or "unknown_foreground" in err_str.lower():
-                    return {"error": "face_detection_failed"}, 410
+                    return fail("face_detection_failed", 410, "Use a front-facing photo with plain background and good light.", len(images_data))
                 elif "429" in err_str or "quota" in err_str.lower() or "402" in err_str or "insufficient_credits" in err_str.lower():
-                    return {"error": "quota_exceeded"}, 429
+                    return fail("quota_exceeded", 429, "Daily remove.bg quota is exhausted. Try another API key in Admin Panel.", len(images_data))
                 elif "403" in err_str or "auth_failed" in err_str.lower():
-                    return {"error": "API Key is invalid or unauthorized."}, 500
+                    return fail("invalid_api_key", 500, "The active remove.bg API key is invalid or unauthorized.", len(images_data))
                 else:
                     print(f"ERROR processing image {idx}: {err_str}")
-                    return {"error": err_str}, 500
+                    return fail("processing_failed", 500, err_str, len(images_data))
+            except requests.exceptions.Timeout:
+                return fail("external_service_timeout", 504, "Image service timed out. Try a smaller image or try again.", len(images_data))
+            except requests.exceptions.RequestException as e:
+                print(f"External service error: {e}")
+                return fail("external_service_error", 502, "Image service failed. Please try again.", len(images_data))
+            except Exception as e:
+                print(f"Unexpected image processing error: {e}")
+                return fail("processing_failed", 500, "Image processing failed. Try again with a clearer photo.", len(images_data))
 
+    except ValueError as e:
+        err = str(e)
+        status = 413 if "large" in err else 400
+        messages = {
+            "empty_image": "One uploaded image is empty.",
+            "image_too_large": f"Each image must be under {MAX_IMAGE_BYTES // (1024 * 1024)} MB.",
+            "invalid_image": "Please upload a valid JPG, PNG, or WEBP image.",
+            "unsupported_image_type": "Only JPG, PNG, and WEBP images are supported.",
+            "image_too_small": "Image is too small. Upload at least 120 x 120 px.",
+            "image_resolution_too_large": "Image resolution is too large. Try a smaller image.",
+        }
+        return fail(err, status, messages.get(err, "Invalid upload."))
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return {"error": f"server_error: {str(e)}"}, 500
+        return fail("server_error", 500, str(e))
 
     try:
         paste_w = passport_width + 2 * border
@@ -911,6 +1117,8 @@ def process():
 
         def new_page():
             nonlocal current_page, x, y
+            if len(pages) + 1 >= MAX_OUTPUT_PAGES:
+                raise ValueError("too_many_output_pages")
             pages.append(current_page)
             current_page = Image.new("RGB", (a4_w, a4_h), "white")
             x, y = center_offset_x, margin_y
@@ -933,33 +1141,76 @@ def process():
         pages.append(current_page)
         print(f"DEBUG: Total pages = {len(pages)}")
 
-        # Export multi-page PDF
-        output = BytesIO()
         dpi_val = 300 * scale
-        if len(pages) == 1:
-            pages[0].save(output, format="PDF", dpi=(dpi_val, dpi_val))
-        else:
-            pages[0].save(
-                output,
-                format="PDF",
-                dpi=(dpi_val, dpi_val),
-                save_all=True,
-                append_images=pages[1:],
-            )
-        output.seek(0)
-        print("DEBUG: Returning PDF to client")
 
-        return send_file(
-            output,
+        def build_pdf():
+            pdf_output = BytesIO()
+            if len(pages) == 1:
+                pages[0].save(pdf_output, format="PDF", dpi=(dpi_val, dpi_val))
+            else:
+                pages[0].save(
+                    pdf_output,
+                    format="PDF",
+                    dpi=(dpi_val, dpi_val),
+                    save_all=True,
+                    append_images=pages[1:],
+                )
+            pdf_output.seek(0)
+            return pdf_output
+
+        def attach_sheet_headers(response):
+            response.headers["X-Page-Count"] = str(len(pages))
+            response.headers["X-Print-Size"] = "A4 210mm x 297mm"
+            response.headers["X-Output-Format"] = output_format
+            return response
+
+        record_generation(True, image_count=len(images_data), output_format=output_format, preset=preset_name)
+
+        if output_format == "png":
+            output = BytesIO()
+            pages[0].save(output, format="PNG", dpi=(dpi_val, dpi_val))
+            output.seek(0)
+            response = send_file(
+                output,
+                mimetype="image/png",
+                as_attachment=True,
+                download_name="passport-sheet-page-1.png",
+            )
+            return attach_sheet_headers(response)
+
+        if output_format == "zip":
+            zip_output = BytesIO()
+            with zipfile.ZipFile(zip_output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr("passport-sheet.pdf", build_pdf().getvalue())
+                for idx, page in enumerate(pages, start=1):
+                    png_output = BytesIO()
+                    page.save(png_output, format="PNG", dpi=(dpi_val, dpi_val))
+                    archive.writestr(f"passport-sheet-page-{idx}.png", png_output.getvalue())
+            zip_output.seek(0)
+            response = send_file(
+                zip_output,
+                mimetype="application/zip",
+                as_attachment=True,
+                download_name="passport-sheet.zip",
+            )
+            return attach_sheet_headers(response)
+
+        # Export multi-page PDF
+        print("DEBUG: Returning PDF to client")
+        response = send_file(
+            build_pdf(),
             mimetype="application/pdf",
             as_attachment=True,
             download_name="passport-sheet.pdf",
         )
+        return attach_sheet_headers(response)
 
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return {"error": f"pdf_generation_failed: {str(e)}"}, 500
+        if str(e) == "too_many_output_pages":
+            return fail("too_many_output_pages", 413, f"Sheet would exceed {MAX_OUTPUT_PAGES} pages. Reduce copies or image count.")
+        return fail("pdf_generation_failed", 500, str(e))
 
 
 if __name__ == "__main__":
