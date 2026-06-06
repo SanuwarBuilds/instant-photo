@@ -1207,10 +1207,47 @@
         else if (brightness < 65) photo.quality = 'looks dark; use better light.';
         else if (brightness > 230) photo.quality = 'looks over-bright; avoid harsh light.';
         else photo.quality = 'basic quality looks okay.';
+        renderPhotoList();
         updateQualityGuide();
+
+        // Trigger Gemini AI Quality Check
+        triggerGeminiQualityCheck(photo);
       };
       img.onerror = updateQualityGuide;
       img.src = photo.previewUrl;
+    }
+
+    async function triggerGeminiQualityCheck(photo) {
+      try {
+        const formData = new FormData();
+        formData.append('image', photo.croppedFile || photo.originalFile);
+        
+        photo.quality = 'Gemini AI: Analyzing photo suitability...';
+        renderPhotoList();
+        updateQualityGuide();
+        
+        const res = await fetch('/api/gemini/analyze', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.feedback) {
+            photo.quality = `Gemini AI: ${data.feedback}`;
+          } else {
+            photo.quality = `Gemini AI quality check complete.`;
+          }
+        } else {
+          const data = await res.json().catch(() => ({}));
+          console.warn("Gemini Quality Check skipped or failed:", data.error || res.statusText);
+        }
+      } catch (err) {
+        console.error("Gemini analysis error:", err);
+      } finally {
+        renderPhotoList();
+        updateQualityGuide();
+      }
     }
 
     // ---- Render Photo Cards ----

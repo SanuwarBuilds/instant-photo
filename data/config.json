@@ -1,7 +1,7 @@
 {
   "admin": {
     "username": "admin",
-    "password_hash": "$2b$12$IdoF.7TxG/U/BqEVF6Dv8ewS4fENfAUBOw6TmpXcXSkAuZFnsVtGC"
+    "password_hash": "$2b$12$vcpPkJlCZxz1bzNSQgwySOiIvoyug6MaxJWJWwgQIrEE.DGgTcXL."
   },
   "api_keys": [
     {
@@ -22,6 +22,16 @@
       "active": true,
       "added_at": "2026-03-20T22:10:04.200074",
       "usage_count": 9,
+      "last_failed": null
+    },
+    {
+      "id": "gemini-api-key",
+      "service": "gemini",
+      "key": "YOUR_GEMINI_API_KEY",
+      "label": "Gemini API Key",
+      "active": true,
+      "added_at": "2026-06-06T17:42:04",
+      "usage_count": 0,
       "last_failed": null
     }
   ],
