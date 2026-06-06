@@ -984,6 +984,57 @@ def hex_to_rgb(hex_color):
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
 
+def replace_clothes_with_gemini(image_bytes, ai_coat, gemini_key):
+    import base64
+    base64_image = base64.b64encode(image_bytes).decode("utf-8")
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key={gemini_key}"
+    headers = {"Content-Type": "application/json"}
+    
+    prompts = {
+        "black_suit": "Change the clothes of the person in this photo to a professional formal black suit with a white shirt and a black necktie. Keep the head, face, hair, and expression exactly the same.",
+        "blue_suit": "Change the clothes of the person in this photo to a professional formal dark blue suit with a white shirt and a dark blue necktie. Keep the head, face, hair, and expression exactly the same.",
+        "grey_blazer": "Change the clothes of the person in this photo to a professional formal grey blazer suit with a white shirt. Keep the head, face, hair, and expression exactly the same."
+    }
+    prompt = prompts.get(ai_coat, prompts["black_suit"])
+    
+    payload = {
+        "contents": [
+            {
+              "parts": [
+                {"text": prompt},
+                {
+                  "inlineData": {
+                    "mimeType": "image/png",
+                    "data": base64_image
+                  }
+                }
+              ]
+            }
+        ]
+    }
+    
+    print(f"Calling Gemini 3.1 Flash Image (Nano Banana 2) API for {ai_coat}...")
+    res = requests.post(url, headers=headers, json=payload, timeout=45)
+    if res.status_code != 200:
+        raise ValueError(f"Gemini Image API failed: {res.status_code} - {res.text}")
+        
+    res_json = res.json()
+    try:
+        candidates = res_json.get("candidates", [])
+        if candidates:
+            parts = candidates[0]["content"]["parts"]
+            for part in parts:
+                if "inlineData" in part:
+                    img_data = base64.b64decode(part["inlineData"]["data"])
+                    return img_data
+            raise ValueError("No inlineData found in Gemini Image API response.")
+        else:
+            raise ValueError(f"No candidates in Gemini Image API response: {res_json}")
+    except Exception as e:
+        raise ValueError(f"Failed to parse Gemini Image response: {str(e)}. Response: {res_json}")
+
+
 def process_single_image(input_image_bytes, bg_color="#FFFFFF", ai_coat="none"):
     """Remove background, enhance, and return a ready-to-paste passport PIL image.
 
@@ -1068,6 +1119,30 @@ def process_single_image(input_image_bytes, bg_color="#FFFFFF", ai_coat="none"):
     buffer = BytesIO()
     flat_img.save(buffer, format="PNG")
     buffer.seek(0)
+    flat_image_bytes = buffer.getvalue()
+
+    gemini_used = False
+    # Call Google Gemini 3.1 Flash Image (Nano Banana 2) for Clothing Replacement
+    if ai_coat and ai_coat != "none":
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        if not gemini_key:
+            active_key_info = utils.get_active_api_key("gemini")
+            if active_key_info:
+                gemini_key = active_key_info.get("key")
+        
+        if gemini_key:
+            try:
+                # Replace clothes using Gemini 3.1 Flash Image
+                gemini_output_bytes = replace_clothes_with_gemini(flat_image_bytes, ai_coat, gemini_key)
+                flat_image_bytes = gemini_output_bytes
+                gemini_used = True
+            except Exception as e:
+                print(f"WARNING: Gemini Image API failed ({e}). Falling back to Cloudinary gen_replace.")
+        else:
+            print("WARNING: Gemini API Key not configured. Using Cloudinary fallback.")
+
+    # Upload image (either Gemini-generated or original flat image) to Cloudinary for AI enhancement
+    buffer = BytesIO(flat_image_bytes)
     upload_result = cloudinary.uploader.upload(buffer, resource_type="image")
     image_url = upload_result.get("secure_url")
     public_id = upload_result.get("public_id")
@@ -1075,9 +1150,9 @@ def process_single_image(input_image_bytes, bg_color="#FFFFFF", ai_coat="none"):
     if not image_url:
         raise ValueError("cloudinary_upload_failed")
 
-    # Step 4: Enhance via Cloudinary AI (and dress up in AI coat/suit if requested)
+    # Step 4: Enhance via Cloudinary AI (fallback to gen_replace if Gemini was not used)
     transformation_list = []
-    if ai_coat and ai_coat != "none":
+    if ai_coat and ai_coat != "none" and not gemini_used:
         coat_prompts = {
             "black_suit": "a professional formal black suit with a white shirt and necktie",
             "blue_suit": "a professional formal dark blue suit with a white shirt and necktie",
