@@ -763,15 +763,15 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
             <div>
               <label class="block mb-1 text-sm font-medium">Width (px)</label>
-              <input type="number" id="width" value="390"
+              <input type="number" id="width" value="390" min="120" max="2000"
                 class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <input type="range" id="widthRange" min="120" max="900" value="390" class="w-full mt-2 accent-blue-500" />
+              <input type="range" id="widthRange" min="120" max="2000" value="390" class="w-full mt-2 accent-blue-500" />
             </div>
             <div>
               <label class="block mb-1 text-sm font-medium">Height (px)</label>
-              <input type="number" id="height" value="480"
+              <input type="number" id="height" value="480" min="120" max="3000"
                 class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <input type="range" id="heightRange" min="120" max="1200" value="480" class="w-full mt-2 accent-blue-500" />
+              <input type="range" id="heightRange" min="120" max="3000" value="480" class="w-full mt-2 accent-blue-500" />
             </div>
             <div>
               <label class="block mb-1 text-sm font-medium">Spacing (px)</label>
@@ -819,8 +819,9 @@
               <label class="block mb-1 text-sm font-medium">Output Format</label>
               <select id="outputFormat" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="pdf">PDF print sheet</option>
+                <option value="jpg">JPEG print sheet (Best for Photoshop 7.0)</option>
                 <option value="png">PNG sheet page 1</option>
-                <option value="zip">ZIP: PDF + PNG pages</option>
+                <option value="zip">ZIP: PDF + PNG & JPEG pages</option>
               </select>
             </div>
             <div class="bg-slate-950/70 border border-slate-700 rounded-lg p-3 text-xs text-gray-400">
@@ -1025,11 +1026,7 @@
 
     const PRESETS = {
       indian_passport: { label: 'Indian Passport', width: 390, height: 480, copies: 8, help: 'Common 35 x 45 mm passport style.' },
-      pan: { label: 'PAN Card', width: 300, height: 360, copies: 12, help: 'Compact ID photo size.' },
-      aadhaar: { label: 'Aadhaar', width: 300, height: 360, copies: 12, help: 'Compact ID photo size.' },
-      visa: { label: 'Visa', width: 600, height: 600, copies: 6, help: 'Square visa style photo.' },
-      school_id: { label: 'School ID', width: 300, height: 360, copies: 16, help: 'Smaller ID card photo.' },
-      stamp: { label: 'Stamp Size', width: 240, height: 300, copies: 24, help: 'High count small prints.' }
+      postcard: { label: 'Postcard (4x6")', width: 1200, height: 1800, copies: 2, help: 'Standard 4 x 6 inches (10 x 15 cm) postcard photo.' }
     };
     let selectedPreset = 'indian_passport';
 
@@ -1522,12 +1519,13 @@
           const url = URL.createObjectURL(blob);
           let filename = 'passport-sheet.pdf';
           if (format === 'png') filename = 'passport-sheet-page-1.png';
+          if (format === 'jpg' || format === 'jpeg') filename = 'passport-sheet-page-1.jpg';
           if (format === 'zip') filename = 'passport-sheet.zip';
 
           if (format === 'pdf') {
             pdfPreview.classList.remove('hidden');
             pdfPreview.src = url;
-          } else if (format === 'png') {
+          } else if (format === 'png' || format === 'jpg' || format === 'jpeg') {
             pngPreview.classList.remove('hidden');
             pngPreview.src = url;
           }

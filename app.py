@@ -1106,7 +1106,7 @@ def process():
     print("==== /process endpoint hit ====")
 
     output_format = (request.form.get("output_format") or "pdf").lower()
-    if output_format not in {"pdf", "png", "zip"}:
+    if output_format not in {"pdf", "png", "jpg", "jpeg", "zip"}:
         output_format = "pdf"
     preset_name = (request.form.get("preset") or "custom").strip()[:40] or "custom"
 
@@ -1126,8 +1126,8 @@ def process():
         # Layout settings
         # Higher DPI scaling for maximum quality (600 DPI instead of 300 DPI)
         scale = 2
-        passport_width = parse_int_field("width", 390, 120, 900) * scale
-        passport_height = parse_int_field("height", 480, 120, 1200) * scale
+        passport_width = parse_int_field("width", 390, 120, 2000) * scale
+        passport_height = parse_int_field("height", 480, 120, 3000) * scale
         border = parse_int_field("border", 2, 0, 20) * scale
         spacing = parse_int_field("spacing", 10, 0, 80) * scale
         cut_marks = request.form.get("cut_marks", "true") == "true"
@@ -1305,14 +1305,32 @@ def process():
             )
             return attach_sheet_headers(response)
 
+        if output_format in {"jpg", "jpeg"}:
+            output = BytesIO()
+            pages[0].save(output, format="JPEG", dpi=(dpi_val, dpi_val), quality=95)
+            output.seek(0)
+            response = send_file(
+                output,
+                mimetype="image/jpeg",
+                as_attachment=True,
+                download_name="passport-sheet-page-1.jpg",
+            )
+            return attach_sheet_headers(response)
+
         if output_format == "zip":
             zip_output = BytesIO()
             with zipfile.ZipFile(zip_output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
                 archive.writestr("passport-sheet.pdf", build_pdf().getvalue())
                 for idx, page in enumerate(pages, start=1):
+                    # Save PNG version
                     png_output = BytesIO()
                     page.save(png_output, format="PNG", dpi=(dpi_val, dpi_val))
                     archive.writestr(f"passport-sheet-page-{idx}.png", png_output.getvalue())
+                    
+                    # Save JPEG version (highly compatible for printing/Photoshop)
+                    jpg_output = BytesIO()
+                    page.save(jpg_output, format="JPEG", dpi=(dpi_val, dpi_val), quality=95)
+                    archive.writestr(f"passport-sheet-page-{idx}.jpg", jpg_output.getvalue())
             zip_output.seek(0)
             response = send_file(
                 zip_output,
