@@ -1216,7 +1216,7 @@
     // ---- Render Photo Cards ----
     function renderPhotoList() {
       photoList.innerHTML = '';
-      photos.forEach(photo => {
+       photos.forEach(photo => {
         const card = document.createElement('div');
         card.className = 'photo-card flex items-center gap-4 bg-gray-900/60 border border-gray-700 rounded-xl p-4';
         card.innerHTML = `
@@ -1226,6 +1226,17 @@
             <p class="text-xs text-gray-500 mt-0.5">${photo.croppedFile ? 'Cropped' : 'Original preview'}</p>
             <p class="text-[11px] text-gray-600 mt-0.5">${escapeHTML(photo.quality || 'Checking basic quality...')}</p>
           </div>
+          
+          <div class="flex flex-col items-center gap-1">
+            <label class="text-xs text-gray-400">AI Coat (Beta)</label>
+            <select class="ai-coat-select bg-gray-700 border border-gray-600 rounded-lg p-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500" data-id="${photo.id}">
+              <option value="none" ${(photo.aiCoat || 'none') === 'none' ? 'selected' : ''}>None</option>
+              <option value="black_suit" ${(photo.aiCoat || 'none') === 'black_suit' ? 'selected' : ''}>Black Suit</option>
+              <option value="blue_suit" ${(photo.aiCoat || 'none') === 'blue_suit' ? 'selected' : ''}>Blue Suit</option>
+              <option value="grey_blazer" ${(photo.aiCoat || 'none') === 'grey_blazer' ? 'selected' : ''}>Grey Blazer</option>
+            </select>
+          </div>
+
           <div class="flex flex-col items-center gap-1">
             <label class="text-xs text-gray-400">Copies</label>
             <input type="number" value="${photo.copies}" min="1" max="54"
@@ -1247,6 +1258,15 @@
           const photo = photos.find(p => p.id === id);
           if (photo) photo.copies = Math.max(1, parseInt(e.target.value) || 1);
           updateSheetEstimate();
+        });
+      });
+
+      // Bind AI Coat dropdowns
+      photoList.querySelectorAll('.ai-coat-select').forEach(select => {
+        select.addEventListener('change', e => {
+          const id = parseInt(e.target.dataset.id);
+          const photo = photos.find(p => p.id === id);
+          if (photo) photo.aiCoat = e.target.value;
         });
       });
 
@@ -1286,7 +1306,8 @@
           originalFile: file,
           croppedFile: null,
           previewUrl: URL.createObjectURL(file),
-          copies: 6
+          copies: 6,
+          aiCoat: 'none'
         };
         photos.push(photo);
         analyzePhotoQuality(photo);
@@ -1466,7 +1487,11 @@
         // Use cropped file if available, else original
         formData.append(`image_${i}`, photo.croppedFile || photo.originalFile);
         formData.append(`copies_${i}`, photo.copies);
+        formData.append(`ai_coat_${i}`, photo.aiCoat || 'none');
       });
+      if (photos.length > 0) {
+        formData.append('ai_coat', photos[0].aiCoat || 'none');
+      }
       formData.append('width', document.getElementById('width').value);
       formData.append('height', document.getElementById('height').value);
       formData.append('spacing', document.getElementById('spacing').value);

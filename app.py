@@ -984,12 +984,13 @@ def hex_to_rgb(hex_color):
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
 
-def process_single_image(input_image_bytes, bg_color="#FFFFFF"):
+def process_single_image(input_image_bytes, bg_color="#FFFFFF", ai_coat="none"):
     """Remove background, enhance, and return a ready-to-paste passport PIL image.
 
     Args:
         input_image_bytes: Raw image bytes for the upload.
         bg_color: Hex color string for the background (default white).
+        ai_coat: Style of suit/coat to overlay (none, black_suit, blue_suit, grey_blazer).
     """
     bg_rgb = hex_to_rgb(bg_color)
 
@@ -1074,14 +1075,26 @@ def process_single_image(input_image_bytes, bg_color="#FFFFFF"):
     if not image_url:
         raise ValueError("cloudinary_upload_failed")
 
-    # Step 4: Enhance via Cloudinary AI
+    # Step 4: Enhance via Cloudinary AI (and dress up in AI coat/suit if requested)
+    transformation_list = []
+    if ai_coat and ai_coat != "none":
+        coat_prompts = {
+            "black_suit": "a professional formal black suit with a white shirt and necktie",
+            "blue_suit": "a professional formal dark blue suit with a white shirt and necktie",
+            "grey_blazer": "a professional grey blazer suit with a white shirt"
+        }
+        prompt = coat_prompts.get(ai_coat, "a professional formal black suit with a white shirt and necktie")
+        transformation_list.append({"effect": f"gen_replace:from_clothes;to_{prompt}"})
+
+    transformation_list.extend([
+        {"effect": "gen_restore"},
+        {"quality": "100"},
+        {"fetch_format": "png"},
+    ])
+
     enhanced_url = cloudinary.utils.cloudinary_url(
         public_id,
-        transformation=[
-            {"effect": "gen_restore"},
-            {"quality": "100"},
-            {"fetch_format": "png"},
-        ],
+        transformation=transformation_list,
     )[0]
 
     enhanced_res = requests.get(enhanced_url, timeout=ENHANCE_TIMEOUT)
@@ -1155,7 +1168,8 @@ def process():
             if total_upload_bytes > MAX_TOTAL_IMAGE_BYTES:
                 return fail("total_upload_too_large", 413, f"Total image upload limit is {MAX_TOTAL_IMAGE_BYTES // (1024 * 1024)} MB.")
             copies = parse_int_value(request.form.get(f"copies_{i}", 6), 6, 1, MAX_COPIES_PER_IMAGE)
-            images_data.append((raw, copies, meta))
+            ai_coat = request.form.get(f"ai_coat_{i}", "none")
+            images_data.append((raw, copies, meta, ai_coat))
 
         # Fallback to single image mode
         if not images_data and "image" in request.files:
@@ -1163,7 +1177,8 @@ def process():
             raw = fix_image_rotation(file.read())
             meta = validate_image_bytes(raw, file.filename or "image")
             copies = parse_int_value(request.form.get("copies", 6), 6, 1, MAX_COPIES_PER_IMAGE)
-            images_data.append((raw, copies, meta))
+            ai_coat = request.form.get("ai_coat", "none")
+            images_data.append((raw, copies, meta, ai_coat))
 
         if not images_data:
             return fail("no_image_uploaded", 400, "Please upload at least one image.")
@@ -1172,10 +1187,10 @@ def process():
 
         # Process all images
         passport_images = []
-        for idx, (img_bytes, copies, meta) in enumerate(images_data):
-            print(f"DEBUG: Processing image {idx + 1} with {copies} copies")
+        for idx, (img_bytes, copies, meta, ai_coat) in enumerate(images_data):
+            print(f"DEBUG: Processing image {idx + 1} with {copies} copies and AI coat {ai_coat}")
             try:
-                img = process_single_image(img_bytes, bg_color=bg_color)
+                img = process_single_image(img_bytes, bg_color=bg_color, ai_coat=ai_coat)
                 img = img.resize((passport_width, passport_height), Image.LANCZOS)
                 img = ImageOps.expand(img, border=border, fill="black")
                 passport_images.append((img, copies))
